@@ -84,6 +84,8 @@ tr:hover td{background:#fafaf8;}
 .cert-date-label{font-size:11px;color:#555;margin-top:3px;}
 .cert-footer{text-align:center;font-size:11px;font-style:italic;color:#555;margin-top:22px;line-height:1.6;}
 </style>
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 </head>
 <body>
 <div class="app">
@@ -207,9 +209,11 @@ tr:hover td{background:#fafaf8;}
         </div>
         <div id="cert-student-list" style="border:1px solid #eee;border-radius:8px;overflow:hidden;margin-bottom:12px;"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="showCerts()"><i class="ti ti-printer"></i> Preview &amp; Print certificates</button>
-          <button class="btn btn-success" onclick="emailCerts()"><i class="ti ti-mail"></i> Email certificates (batch)</button>
+          <button class="btn btn-primary" onclick="showCerts()"><i class="ti ti-printer"></i> Preview &amp; Print</button>
+          <button class="btn btn-success" onclick="emailCerts()"><i class="ti ti-mail"></i> Open email drafts</button>
+          <button class="btn" style="background:#4285f4;color:#fff;border-color:#4285f4;" onclick="initGmailAndSend()"><i class="ti ti-send"></i> Auto-send via Gmail</button>
         </div>
+        <div id="gmail-status" style="display:none;margin-top:10px;"></div>
       </div>
     </div>
     <div id="cert-output"></div>
@@ -565,10 +569,101 @@ function showCerts(){
   const sel=getChecked();
   if(!sel.length){showAlert('alert-certs','Please select at least one student.','warn');return;}
   document.getElementById('cert-output').innerHTML=
-    `<div style="margin:1rem 0;" class="no-print"><button class="btn btn-primary" onclick="window.print()"><i class="ti ti-printer"></i> Print / Save as PDF (one certificate per page)</button></div>`+
+    `<div style="margin:1rem 0;display:flex;gap:8px;flex-wrap:wrap;" class="no-print">
+      <button class="btn btn-primary" onclick="printCerts()"><i class="ti ti-printer"></i> Print certificates</button>
+      <button class="btn btn-success" onclick="downloadAllPDFs()"><i class="ti ti-file-download"></i> Download as PDF</button>
+    </div>`+
     sel.map(s=>buildCert(s,c)).join('');
-  showAlert('alert-certs',sel.length+' certificate(s) ready. Click Print to save as PDF.','success');
+  showAlert('alert-certs',sel.length+' certificate(s) ready below.','success');
 }
+
+function printCerts(){
+  window.print();
+}
+
+function downloadAllPDFs(){
+  const cid=document.getElementById('certC').value;
+  const c=courses.find(x=>x.id===cid);
+  const sel=getChecked();
+  if(!sel.length){showAlert('alert-certs','Please select at least one student.','warn');return;}
+  // Open a new window with just the certificates for clean PDF saving
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Certificates</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;}
+    .cert-outer{border:3px solid #2c2c2a;border-radius:4px;margin:20px auto;background:#fff;color:#000;font-family:Georgia,serif;max-width:750px;page-break-after:always;}
+    .cert-inner{border:1.5px solid #2c2c2a;margin:10px;padding:28px 36px;min-height:520px;display:flex;flex-direction:column;}
+    .cert-top-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+    .cert-addr{font-size:11px;line-height:1.7;text-align:right;color:#2c2c2a;}
+    .cert-title{text-align:center;font-size:26px;font-weight:bold;letter-spacing:1px;margin:10px 0 4px;text-transform:uppercase;}
+    .cert-subtitle{text-align:center;font-size:14px;font-weight:bold;margin-bottom:2px;}
+    .cert-approved{text-align:center;font-size:13px;font-weight:bold;margin-bottom:20px;}
+    .cert-name-block{text-align:center;margin:12px 0 20px;}
+    .cert-name-line{display:inline-block;border-bottom:1.5px solid #000;min-width:340px;font-size:22px;padding-bottom:2px;}
+    .cert-name-label{font-size:12px;color:#555;margin-top:4px;}
+    .cert-fields-row{display:flex;gap:24px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;}
+    .cert-field{text-align:center;}
+    .cert-field-val{border-bottom:1.5px solid #000;min-width:100px;padding-bottom:2px;font-size:13px;display:inline-block;}
+    .cert-field-label{font-size:11px;color:#555;margin-top:3px;}
+    .cert-bottom-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;flex-wrap:wrap;gap:12px;}
+    .cert-sig-block{flex:1;min-width:180px;}
+    .cert-sig-val{font-size:13px;padding-bottom:2px;}
+    .cert-sig-line{border-bottom:1.5px solid #000;margin-bottom:3px;}
+    .cert-sig-label{font-size:11px;color:#555;}
+    .cert-date-block{text-align:center;}
+    .cert-date-val{border-bottom:1.5px solid #000;font-size:13px;padding-bottom:2px;min-width:120px;display:inline-block;}
+    .cert-date-label{font-size:11px;color:#555;margin-top:3px;}
+    .cert-footer{text-align:center;font-size:11px;font-style:italic;color:#555;margin-top:18px;line-height:1.6;}
+    .print-btn{position:fixed;top:10px;right:10px;padding:10px 20px;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;z-index:999;}
+    @media print{.print-btn{display:none;}}
+  </style>
+  </head><body>
+  <button class="print-btn" onclick="window.print()">&#128438; Save as PDF / Print</button>
+  `);
+  sel.forEach(s=>{
+    const courseShort=c.name.replace(/^Post-License\s*/,'').replace(/^Elective:\s*/,'').replace(/\sv\.\d+$/,'').trim()||c.name;
+    win.document.write(`
+    <div class="cert-outer">
+      <div class="cert-inner">
+        <div class="cert-top-row">
+          <img src="${document.querySelector('header img, .header img, img[alt*=Logo]') ? document.querySelector('img[alt*=Logo]').src : ''}" style="width:80px;height:65px;object-fit:contain;">
+          <div class="cert-addr">${escHTML(gs('addr1'))}<br>${escHTML(gs('addr2'))}<br>Phone: ${escHTML(gs('phone'))}<br>Email: ${escHTML(gs('email'))}<br>Web: ${escHTML(gs('web'))}</div>
+        </div>
+        <div class="cert-title">Certificate of Completion</div>
+        <div class="cert-subtitle">For ${escHTML(c.name)}</div>
+        <div class="cert-approved">Approved by the North Carolina Real Estate Commission</div>
+        <div class="cert-name-block">
+          <div class="cert-name-line">${escHTML(s.name)}</div>
+          <div class="cert-name-label">Name</div>
+        </div>
+        <div class="cert-fields-row">
+          <div class="cert-field"><div class="cert-field-val">${escHTML(courseShort)}</div><div class="cert-field-label">Course</div></div>
+          <div class="cert-field"><div class="cert-field-val">${escHTML(c.hours||'—')}</div><div class="cert-field-label">Course Hours</div></div>
+          <div class="cert-field"><div class="cert-field-val">${fmtDisp(c.start)}</div><div class="cert-field-label">Course Start Date</div></div>
+          <div class="cert-field"><div class="cert-field-val">${fmtDisp(c.end)}</div><div class="cert-field-label">Course End Date</div></div>
+        </div>
+        <div class="cert-bottom-row">
+          <div class="cert-sig-block"><div class="cert-sig-val">${escHTML(gs('school'))} / ${escHTML(gs('prov'))}</div><div class="cert-sig-line"></div><div class="cert-sig-label">Education Provider / Code</div></div>
+          <div class="cert-sig-block"><div class="cert-sig-val">${escHTML(gs('instructor'))} / ${escHTML(gs('instCode'))}</div><div class="cert-sig-line"></div><div class="cert-sig-label">Instructor / Code</div></div>
+        </div>
+        <div class="cert-bottom-row" style="margin-top:14px;">
+          <div class="cert-sig-block">
+            <img src="${document.querySelector('img[alt=Signature]') ? document.querySelector('img[alt=Signature]').src : ''}" style="height:48px;max-width:200px;object-fit:contain;display:block;margin-bottom:2px;">
+            <div class="cert-sig-line"></div>
+            <div class="cert-sig-label">Education Director Signature</div>
+          </div>
+          <div class="cert-date-block"><div class="cert-date-val">${fmtDisp(c.end)}</div><div class="cert-date-label">Date</div></div>
+        </div>
+        <div class="cert-footer"><em>This certificate should be retained as the licensee's personal record of course completion.<br>It should NOT be submitted to the Commission unless the Commission specifically requests it.</em></div>
+      </div>
+    </div>`);
+  });
+  win.document.write('</body></html>');
+  win.document.close();
+}
+
+function escHTML(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function emailCerts(){
   const cid=document.getElementById('certC').value;
@@ -576,11 +671,27 @@ function emailCerts(){
   const sel=getChecked();
   if(!sel.length){showAlert('alert-certs','Please select at least one student.','warn');return;}
   sel.forEach(s=>{
-    const subj=encodeURIComponent('Your Certificate of Completion — '+c.name);
-    const body=encodeURIComponent('Dear '+s.name+',\n\nCongratulations on completing:\n\nCourse: '+c.name+'\nCourse #: '+c.num+'\nHours: '+(c.hours||'')+'\nStart: '+fmtDisp(c.start)+'\nCompleted: '+fmtDisp(c.end)+'\n\nPlease retain your certificate as your personal record of completion.\n\nBest regards,\n'+gs('instructor')+'\n'+gs('school'));
+    const subj=encodeURIComponent('Certificate of Completion — '+c.name+' — Triangle Real Estate Academy');
+    const body=encodeURIComponent(
+      'Dear '+s.name+',\n\n'+
+      'Greetings,\n\n'+
+      'Congratulations on completing your course! Attached is your certificate of completion. If you have any questions, please do not hesitate to contact me. Thank you so much for using Triangle Real Estate Academy.\n\n'+
+      'Course: '+c.name+'\n'+
+      'Course #: '+c.num+'\n'+
+      'Hours: '+(c.hours||'')+'\n'+
+      'Start Date: '+fmtDisp(c.start)+'\n'+
+      'Completion Date: '+fmtDisp(c.end)+'\n\n'+
+      'Keith E. Green, M.Ed, GSI\n'+
+      'Education Director/Instructor\n'+
+      'Triangle Real Estate Academy\n'+
+      '127 W. Main Street | Spring Hope, NC 27882\n'+
+      'Phone: 919-373-3577\n'+
+      'Email: keg@trianglerealestateacademy.com\n'+
+      'Web: www.trianglerealestateacademy.com'
+    );
     window.open('mailto:'+s.email+'?subject='+subj+'&body='+body);
   });
-  showAlert('alert-certs','Opened '+sel.length+' email draft(s) — review and send from your email client.','success');
+  showAlert('alert-certs','Opened '+sel.length+' email draft(s) with your message. Attach the PDF certificate to each email before sending.','success');
 }
 
 // ─── NCREC ROSTER ────────────────────────────────────────
@@ -653,6 +764,200 @@ function loadSettingsForm(){
   document.getElementById('setEmail').value=gs('email');
   document.getElementById('setWeb').value=gs('web');
 }
+
+
+// --- GMAIL AUTO-SEND ---
+var GMAIL_CLIENT_ID = '30639917516-mvcj4lq9fd5h8cp16nv8ngd144aj70jp.apps.googleusercontent.com';
+var GMAIL_SCOPES = 'https://www.googleapis.com/auth/gmail.send';
+var gmailTokenClient = null;
+var gmailAccessToken = null;
+
+function showGmailStatus(type, msg) {
+  var el = document.getElementById('gmail-status');
+  el.style.display = 'flex';
+  el.className = 'alert alert-' + type;
+  el.innerHTML = msg;
+}
+
+function initGmailAndSend() {
+  var cid = document.getElementById('certC').value;
+  var c = courses.find(function(x){ return x.id === cid; });
+  var sel = getChecked();
+  if (!sel.length) { showAlert('alert-certs','Please select at least one student.','warn'); return; }
+  if (!c) { showAlert('alert-certs','Please select a course.','warn'); return; }
+  showGmailStatus('info', '<i class="ti ti-loader"></i> Connecting to Gmail — a sign-in popup will appear...');
+  gmailTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GMAIL_CLIENT_ID,
+    scope: GMAIL_SCOPES,
+    callback: function(tokenResponse) {
+      if (tokenResponse.error) {
+        showGmailStatus('error', '<i class="ti ti-alert-circle"></i> Authorization failed: ' + tokenResponse.error);
+        return;
+      }
+      gmailAccessToken = tokenResponse.access_token;
+      showGmailStatus('info', '<i class="ti ti-loader"></i> Signed in! Sending certificates...');
+      sendAllCerts(c, sel);
+    }
+  });
+  gmailTokenClient.requestAccessToken();
+}
+
+function sendAllCerts(c, studs) {
+  var sent = 0;
+  var failed = 0;
+  var total = studs.length;
+
+  function sendNext(i) {
+    if (i >= total) {
+      if (failed === 0) {
+        showGmailStatus('success', '<i class="ti ti-check"></i> All ' + sent + ' certificate(s) sent successfully via Gmail!');
+      } else {
+        showGmailStatus('warn', '<i class="ti ti-alert-triangle"></i> Sent: ' + sent + ', Failed: ' + failed);
+      }
+      return;
+    }
+    var s = studs[i];
+    showGmailStatus('info', '<i class="ti ti-loader"></i> Sending ' + (i+1) + ' of ' + total + ' — ' + s.name + '...');
+    var certHTML = buildCertHTMLString(s, c);
+    var b64cert = encodeToBase64(certHTML);
+    var filename = s.name.replace(/\s+/g,'_') + '_Certificate_' + c.num + '.html';
+    sendGmailMessage(s, c, b64cert, filename)
+      .then(function(){ sent++; sendNext(i+1); })
+      .catch(function(err){ console.error('Failed: ' + s.name, err); failed++; sendNext(i+1); });
+  }
+  sendNext(0);
+}
+
+function buildCertHTMLString(s, c) {
+  var logoSrc = '';
+  var sigSrc = '';
+  var logoEl = document.querySelector('img[alt*="Logo"]');
+  var sigEl = document.querySelector('img[alt="Signature"]');
+  if (logoEl) logoSrc = logoEl.src;
+  if (sigEl) sigSrc = sigEl.src;
+  var courseShort = c.name.replace(/^Post-License\s*/,'').replace(/^Elective:\s*/,'').replace(/\sv\.\d+$/,'').trim() || c.name;
+  return '<!DOCTYPE html><html><head><style>' +
+    '*{box-sizing:border-box;margin:0;padding:0;}' +
+    'body{font-family:Georgia,serif;background:#fff;color:#000;padding:10px;}' +
+    '.cert-outer{border:3px solid #2c2c2a;background:#fff;}' +
+    '.cert-inner{border:1.5px solid #2c2c2a;margin:8px;padding:24px 32px;min-height:480px;display:flex;flex-direction:column;}' +
+    '.top-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}' +
+    '.addr{font-size:10px;line-height:1.7;text-align:right;}' +
+    '.title{text-align:center;font-size:24px;font-weight:bold;letter-spacing:1px;margin:8px 0 3px;text-transform:uppercase;}' +
+    '.sub{text-align:center;font-size:13px;font-weight:bold;margin-bottom:2px;}' +
+    '.appr{text-align:center;font-size:12px;font-weight:bold;margin-bottom:16px;}' +
+    '.nb{text-align:center;margin:10px 0 16px;}' +
+    '.nl{display:inline-block;border-bottom:1.5px solid #000;min-width:300px;font-size:20px;padding-bottom:2px;}' +
+    '.nlbl{font-size:11px;color:#555;margin-top:3px;}' +
+    '.frow{display:flex;gap:20px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}' +
+    '.fld{text-align:center;}' +
+    '.fv{border-bottom:1.5px solid #000;min-width:90px;padding-bottom:2px;font-size:12px;display:inline-block;}' +
+    '.fl{font-size:10px;color:#555;margin-top:2px;}' +
+    '.brow{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;flex-wrap:wrap;gap:10px;}' +
+    '.sb{flex:1;min-width:150px;}' +
+    '.sv{font-size:12px;padding-bottom:2px;}' +
+    '.sl{border-bottom:1.5px solid #000;margin-bottom:3px;}' +
+    '.slbl{font-size:10px;color:#555;}' +
+    '.db{text-align:center;}' +
+    '.dv{border-bottom:1.5px solid #000;font-size:12px;padding-bottom:2px;min-width:110px;display:inline-block;}' +
+    '.dlbl{font-size:10px;color:#555;margin-top:2px;}' +
+    '.footer{text-align:center;font-size:10px;font-style:italic;color:#555;margin-top:14px;line-height:1.5;}' +
+    '</style></head><body>' +
+    '<div class="cert-outer"><div class="cert-inner">' +
+    '<div class="top-row">' +
+    '<img src="' + logoSrc + '" style="width:75px;height:60px;object-fit:contain;">' +
+    '<div class="addr">' + escHTML(gs('addr1')) + '<br>' + escHTML(gs('addr2')) + '<br>Phone: ' + escHTML(gs('phone')) + '<br>Email: ' + escHTML(gs('email')) + '<br>Web: ' + escHTML(gs('web')) + '</div>' +
+    '</div>' +
+    '<div class="title">Certificate of Completion</div>' +
+    '<div class="sub">For ' + escHTML(c.name) + '</div>' +
+    '<div class="appr">Approved by the North Carolina Real Estate Commission</div>' +
+    '<div class="nb"><div class="nl">' + escHTML(s.name) + '</div><div class="nlbl">Name</div></div>' +
+    '<div class="frow">' +
+    '<div class="fld"><div class="fv">' + escHTML(courseShort) + '</div><div class="fl">Course</div></div>' +
+    '<div class="fld"><div class="fv">' + escHTML(c.hours||'') + '</div><div class="fl">Course Hours</div></div>' +
+    '<div class="fld"><div class="fv">' + fmtDisp(c.start) + '</div><div class="fl">Course Start Date</div></div>' +
+    '<div class="fld"><div class="fv">' + fmtDisp(c.end) + '</div><div class="fl">Course End Date</div></div>' +
+    '</div>' +
+    '<div class="brow">' +
+    '<div class="sb"><div class="sv">' + escHTML(gs('school')) + ' / ' + escHTML(gs('prov')) + '</div><div class="sl"></div><div class="slbl">Education Provider / Code</div></div>' +
+    '<div class="sb"><div class="sv">' + escHTML(gs('instructor')) + ' / ' + escHTML(gs('instCode')) + '</div><div class="sl"></div><div class="slbl">Instructor / Code</div></div>' +
+    '</div>' +
+    '<div class="brow" style="margin-top:12px;">' +
+    '<div class="sb"><img src="' + sigSrc + '" style="height:42px;max-width:170px;object-fit:contain;display:block;margin-bottom:2px;"><div class="sl"></div><div class="slbl">Education Director Signature</div></div>' +
+    '<div class="db"><div class="dv">' + fmtDisp(c.end) + '</div><div class="dlbl">Date</div></div>' +
+    '</div>' +
+    '<div class="footer"><em>This certificate should be retained as the licensee\'s personal record of course completion.<br>It should NOT be submitted to the Commission unless the Commission specifically requests it.</em></div>' +
+    '</div></div></body></html>';
+}
+
+function encodeToBase64(str) {
+  var bytes = new TextEncoder().encode(str);
+  var binary = '';
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); }
+  return btoa(binary);
+}
+
+function sendGmailMessage(s, c, b64cert, filename) {
+  var boundary = 'trea_boundary_' + Date.now();
+  var subject = 'Certificate of Completion \u2014 ' + c.name + ' \u2014 Triangle Real Estate Academy';
+  var bodyText =
+    'Dear ' + s.name + ',\n\n' +
+    'Greetings,\n\n' +
+    'Congratulations on completing your course! Attached is your certificate of completion. ' +
+    'If you have any questions, please do not hesitate to contact me. ' +
+    'Thank you so much for using Triangle Real Estate Academy.\n\n' +
+    'Course: ' + c.name + '\n' +
+    'Course #: ' + c.num + '\n' +
+    'Hours: ' + (c.hours||'') + '\n' +
+    'Start Date: ' + fmtDisp(c.start) + '\n' +
+    'Completion Date: ' + fmtDisp(c.end) + '\n\n' +
+    'Keith E. Green, M.Ed, GSI\n' +
+    'Education Director/Instructor\n' +
+    'Triangle Real Estate Academy\n' +
+    '127 W. Main Street | Spring Hope, NC 27882\n' +
+    'Phone: 919-373-3577\n' +
+    'Email: keg@trianglerealestateacademy.com\n' +
+    'Web: www.trianglerealestateacademy.com';
+
+  var raw = [
+    'To: ' + s.email,
+    'Subject: =?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/mixed; boundary="' + boundary + '"',
+    '',
+    '--' + boundary,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: quoted-printable',
+    '',
+    bodyText,
+    '',
+    '--' + boundary,
+    'Content-Type: text/html; name="' + filename + '"',
+    'Content-Transfer-Encoding: base64',
+    'Content-Disposition: attachment; filename="' + filename + '"',
+    '',
+    b64cert,
+    '',
+    '--' + boundary + '--'
+  ].join('\r\n');
+
+  var encodedRaw = btoa(unescape(encodeURIComponent(raw)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+  return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + gmailAccessToken,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ raw: encodedRaw })
+  }).then(function(res) {
+    if (!res.ok) return res.json().then(function(e){ throw new Error(JSON.stringify(e)); });
+    return res.json();
+  });
+}
+// --- END GMAIL ---
 
 // ─── INIT ────────────────────────────────────────────────
 loadFromStorage();
