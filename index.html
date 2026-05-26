@@ -576,8 +576,8 @@ function showCerts(){
   if(!sel.length){showAlert('alert-certs','Please select at least one student.','warn');return;}
   document.getElementById('cert-output').innerHTML=
     `<div style="margin:1rem 0;display:flex;gap:8px;flex-wrap:wrap;" class="no-print">
-      <button class="btn btn-primary" onclick="printCerts()"><i class="ti ti-printer"></i> Print certificates</button>
-      <button class="btn btn-success" onclick="downloadAllPDFs()"><i class="ti ti-file-download"></i> Download as PDF</button>
+      <button class="btn btn-primary" onclick="downloadAllPDFs()"><i class="ti ti-file-download"></i> Download PDF(s)</button>
+      <button class="btn btn-secondary" onclick="printCerts()"><i class="ti ti-printer"></i> Print via browser</button>
     </div>`+
     sel.map(s=>buildCert(s,c)).join('');
   showAlert('alert-certs',sel.length+' certificate(s) ready below.','success');
@@ -588,86 +588,64 @@ function printCerts(){
 }
 
 function downloadAllPDFs(){
-  const cid=document.getElementById('certC').value;
-  const c=courses.find(x=>x.id===cid);
-  const sel=getChecked();
-  if(!sel.length){showAlert('alert-certs','Please select at least one student.','warn');return;}
-  // Open a new window with just the certificates for clean PDF saving
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Certificates</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;}
-    .cert-outer{border:3px solid #2c2c2a;border-radius:4px;margin:20px auto;background:#fff;color:#000;font-family:Georgia,serif;max-width:750px;page-break-after:always;}
-    .cert-inner{border:1.5px solid #2c2c2a;margin:10px;padding:28px 36px;min-height:520px;display:flex;flex-direction:column;}
-    .cert-top-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
-    .cert-addr{font-size:11px;line-height:1.7;text-align:right;color:#2c2c2a;}
-    .cert-title{text-align:center;font-size:26px;font-weight:bold;letter-spacing:1px;margin:10px 0 4px;text-transform:uppercase;}
-    .cert-subtitle{text-align:center;font-size:14px;font-weight:bold;margin-bottom:2px;}
-    .cert-approved{text-align:center;font-size:13px;font-weight:bold;margin-bottom:20px;}
-    .cert-name-block{text-align:center;margin:12px 0 20px;}
-    .cert-name-line{display:inline-block;border-bottom:1.5px solid #000;min-width:340px;font-size:22px;padding-bottom:2px;}
-    .cert-name-label{font-size:12px;color:#555;margin-top:4px;}
-    .cert-fields-row{display:flex;gap:24px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;}
-    .cert-field{text-align:center;}
-    .cert-field-val{border-bottom:1.5px solid #000;min-width:100px;padding-bottom:2px;font-size:13px;display:inline-block;}
-    .cert-field-label{font-size:11px;color:#555;margin-top:3px;}
-    .cert-bottom-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;flex-wrap:wrap;gap:12px;}
-    .cert-sig-block{flex:1;min-width:180px;}
-    .cert-sig-val{font-size:13px;padding-bottom:2px;}
-    .cert-sig-line{border-bottom:1.5px solid #000;margin-bottom:3px;}
-    .cert-sig-label{font-size:11px;color:#555;}
-    .cert-date-block{text-align:center;}
-    .cert-date-val{border-bottom:1.5px solid #000;font-size:13px;padding-bottom:2px;min-width:120px;display:inline-block;}
-    .cert-date-label{font-size:11px;color:#555;margin-top:3px;}
-    .cert-footer{text-align:center;font-size:11px;font-style:italic;color:#555;margin-top:18px;line-height:1.6;}
-    .print-btn{position:fixed;top:10px;right:10px;padding:10px 20px;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;z-index:999;}
-    @media print{.print-btn{display:none;}}
-  </style>
-  </head><body>
-  <button class="print-btn" onclick="window.print()">&#128438; Save as PDF / Print</button>
-  `);
-  sel.forEach(s=>{
-    const courseShort=c.name.replace(/^Post-License\s*/,'').replace(/^Elective:\s*/,'').replace(/\sv\.\d+$/,'').trim()||c.name;
-    win.document.write(`
-    <div class="cert-outer">
-      <div class="cert-inner">
-        <div class="cert-top-row">
-          <img src="${document.querySelector('header img, .header img, img[alt*=Logo]') ? document.querySelector('img[alt*=Logo]').src : ''}" style="width:80px;height:65px;object-fit:contain;">
-          <div class="cert-addr">${escHTML(gs('addr1'))}<br>${escHTML(gs('addr2'))}<br>Phone: ${escHTML(gs('phone'))}<br>Email: ${escHTML(gs('email'))}<br>Web: ${escHTML(gs('web'))}</div>
-        </div>
-        <div class="cert-title">Certificate of Completion</div>
-        <div class="cert-subtitle">For ${escHTML(c.name)}</div>
-        <div class="cert-approved">Approved by the North Carolina Real Estate Commission</div>
-        <div class="cert-name-block">
-          <div class="cert-name-line">${escHTML(s.name)}</div>
-          <div class="cert-name-label">Name</div>
-        </div>
-        <div class="cert-fields-row">
-          <div class="cert-field"><div class="cert-field-val">${escHTML(courseShort)}</div><div class="cert-field-label">Course</div></div>
-          <div class="cert-field"><div class="cert-field-val">${escHTML(c.hours||'—')}</div><div class="cert-field-label">Course Hours</div></div>
-          <div class="cert-field"><div class="cert-field-val">${fmtDisp(c.start)}</div><div class="cert-field-label">Course Start Date</div></div>
-          <div class="cert-field"><div class="cert-field-val">${fmtDisp(c.end)}</div><div class="cert-field-label">Course End Date</div></div>
-        </div>
-        <div class="cert-bottom-row">
-          <div class="cert-sig-block"><div class="cert-sig-val">${escHTML(gs('school'))} / ${escHTML(gs('prov'))}</div><div class="cert-sig-line"></div><div class="cert-sig-label">Education Provider / Code</div></div>
-          <div class="cert-sig-block"><div class="cert-sig-val">${escHTML(gs('instructor'))} / ${escHTML(gs('instCode'))}</div><div class="cert-sig-line"></div><div class="cert-sig-label">Instructor / Code</div></div>
-        </div>
-        <div class="cert-bottom-row" style="margin-top:14px;">
-          <div class="cert-sig-block">
-            <img src="${document.querySelector('img[alt=Signature]') ? document.querySelector('img[alt=Signature]').src : ''}" style="height:48px;max-width:200px;object-fit:contain;display:block;margin-bottom:2px;">
-            <div class="cert-sig-line"></div>
-            <div class="cert-sig-label">Education Director Signature</div>
-          </div>
-          <div class="cert-date-block"><div class="cert-date-val">${fmtDisp(c.end)}</div><div class="cert-date-label">Date</div></div>
-        </div>
-        <div class="cert-footer"><em>This certificate should be retained as the licensee's personal record of course completion.<br>It should NOT be submitted to the Commission unless the Commission specifically requests it.</em></div>
-      </div>
-    </div>`);
-  });
-  win.document.write('</body></html>');
-  win.document.close();
+  var cid = document.getElementById('certC').value;
+  var c = courses.find(function(x){ return x.id===cid; });
+  var sel = getChecked();
+  if(!sel.length){ showAlert('alert-certs','Please select at least one student.','warn'); return; }
+  if(!window.jspdf || !window.jspdf.jsPDF){
+    showAlert('alert-certs','PDF library still loading — please wait a few seconds and try again.','warn');
+    return;
+  }
+
+  showAlert('alert-certs','<i class="ti ti-loader"></i> Generating PDF(s)...','info');
+
+  // Small delay to let alert render
+  setTimeout(function(){
+    if(sel.length === 1){
+      // Single student — download one PDF
+      try {
+        var pdfB64 = generateCertPDF(sel[0], c);
+        var filename = sel[0].name.replace(/[^a-zA-Z0-9]/g,'_') + '_Certificate_' + c.num + '.pdf';
+        downloadPDFFromBase64(pdfB64, filename);
+        showAlert('alert-certs','<i class="ti ti-check"></i> Certificate downloaded as PDF!','success');
+      } catch(e){
+        showAlert('alert-certs','PDF error: ' + e.message,'error');
+      }
+    } else {
+      // Multiple students — download one PDF per student
+      var count = 0;
+      function downloadNext(i){
+        if(i >= sel.length){
+          showAlert('alert-certs','<i class="ti ti-check"></i> ' + count + ' certificate(s) downloaded!','success');
+          return;
+        }
+        try {
+          var pdfB64 = generateCertPDF(sel[i], c);
+          var filename = sel[i].name.replace(/[^a-zA-Z0-9]/g,'_') + '_Certificate_' + c.num + '.pdf';
+          downloadPDFFromBase64(pdfB64, filename);
+          count++;
+        } catch(e){ console.error('PDF error for ' + sel[i].name, e); }
+        setTimeout(function(){ downloadNext(i+1); }, 600);
+      }
+      downloadNext(0);
+    }
+  }, 200);
 }
+
+function downloadPDFFromBase64(b64, filename){
+  var binary = atob(b64);
+  var bytes = new Uint8Array(binary.length);
+  for(var i=0; i<binary.length; i++){ bytes[i] = binary.charCodeAt(i); }
+  var blob = new Blob([bytes], {type:'application/pdf'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+}
+
 
 function escHTML(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
