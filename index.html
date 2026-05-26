@@ -808,23 +808,49 @@ function sendAllCerts(c, studs) {
   var failed = 0;
   var total = studs.length;
 
+  // Check jsPDF is available
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    showGmailStatus('error', '<i class="ti ti-alert-circle"></i> PDF library not loaded yet. Please wait 10 seconds and try again.');
+    return;
+  }
+
   function sendNext(i) {
     if (i >= total) {
       if (failed === 0) {
         showGmailStatus('success', '<i class="ti ti-check"></i> All ' + sent + ' certificate(s) sent successfully via Gmail!');
       } else {
-        showGmailStatus('warn', '<i class="ti ti-alert-triangle"></i> Sent: ' + sent + ', Failed: ' + failed);
+        showGmailStatus('warn', '<i class="ti ti-alert-triangle"></i> Sent: ' + sent + ', Failed: ' + failed + '. Check browser console for details.');
       }
       return;
     }
     var s = studs[i];
-    showGmailStatus('info', '<i class="ti ti-loader"></i> Sending ' + (i+1) + ' of ' + total + ' — ' + s.name + '...');
-    var certHTML = buildCertHTMLString(s, c);
-    var b64cert = encodeToBase64(certHTML);
-    var filename = s.name.replace(/\s+/g,'_') + '_Certificate_' + c.num + '.html';
-    sendGmailMessage(s, c, b64cert, filename)
-      .then(function(){ sent++; sendNext(i+1); })
-      .catch(function(err){ console.error('Failed: ' + s.name, err); failed++; sendNext(i+1); });
+    showGmailStatus('info', '<i class="ti ti-loader"></i> Generating PDF ' + (i+1) + ' of ' + total + ' for ' + s.name + '...');
+
+    // Small delay to let UI update before heavy PDF work
+    setTimeout(function() {
+      try {
+        var pdfBase64 = generateCertPDF(s, c);
+        var filename = s.name.replace(/[^a-zA-Z0-9]/g,'_') + '_Certificate.pdf';
+        showGmailStatus('info', '<i class="ti ti-loader"></i> Sending email ' + (i+1) + ' of ' + total + ' to ' + s.email + '...');
+        sendGmailMessage(s, c, pdfBase64, filename)
+          .then(function() {
+            sent++;
+            showGmailStatus('info', '<i class="ti ti-loader"></i> Sent ' + sent + ' of ' + total + '...');
+            setTimeout(function(){ sendNext(i+1); }, 800);
+          })
+          .catch(function(err) {
+            console.error('Gmail send failed for ' + s.name + ':', err);
+            failed++;
+            showGmailStatus('warn', '<i class="ti ti-alert-triangle"></i> Failed to send to ' + s.name + ': ' + (typeof err === 'string' ? err : JSON.stringify(err)));
+            setTimeout(function(){ sendNext(i+1); }, 800);
+          });
+      } catch(pdfErr) {
+        console.error('PDF generation failed for ' + s.name + ':', pdfErr);
+        showGmailStatus('error', '<i class="ti ti-alert-circle"></i> PDF error for ' + s.name + ': ' + pdfErr.message);
+        failed++;
+        setTimeout(function(){ sendNext(i+1); }, 800);
+      }
+    }, 300);
   }
   sendNext(0);
 }
@@ -1027,8 +1053,18 @@ function sendGmailMessage(s, c, b64cert, filename) {
     '--' + boundary + '--'
   ].join('\r\n');
 
-  var encodedRaw = btoa(encodeURIComponent(raw).replace(/%([0-9A-F]{2})/g, function(m, p){ return String.fromCharCode('0x'+p); }))
-    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  // Safe base64 encoding for unicode
+  var encodedRaw;
+  try {
+    encodedRaw = btoa(unescape(encodeURIComponent(raw)))
+      .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  } catch(encErr) {
+    // Fallback: encode byte by byte
+    var bytes = new TextEncoder().encode(raw);
+    var binary = '';
+    for (var bi = 0; bi < bytes.length; bi++) { binary += String.fromCharCode(bytes[bi]); }
+    encodedRaw = btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
 
   return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
