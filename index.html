@@ -829,65 +829,74 @@ function sendAllCerts(c, studs) {
 }
 
 function buildCertHTMLString(s, c) {
-  var logoSrc = '';
-  var sigSrc = '';
-  var logoEl = document.querySelector('img[alt*="Logo"]');
-  var sigEl = document.querySelector('img[alt="Signature"]');
-  if (logoEl) logoSrc = logoEl.src;
-  if (sigEl) sigSrc = sigEl.src;
   var courseShort = c.name.replace(/^Post-License\s*/,'').replace(/^Elective:\s*/,'').replace(/\sv\.\d+$/,'').trim() || c.name;
-  return '<!DOCTYPE html><html><head><style>' +
-    '*{box-sizing:border-box;margin:0;padding:0;}' +
-    'body{font-family:Georgia,serif;background:#fff;color:#000;padding:10px;}' +
-    '.cert-outer{border:3px solid #2c2c2a;background:#fff;}' +
-    '.cert-inner{border:1.5px solid #2c2c2a;margin:8px;padding:24px 32px;min-height:480px;display:flex;flex-direction:column;}' +
-    '.top-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}' +
-    '.addr{font-size:10px;line-height:1.7;text-align:right;}' +
-    '.title{text-align:center;font-size:24px;font-weight:bold;letter-spacing:1px;margin:8px 0 3px;text-transform:uppercase;}' +
-    '.sub{text-align:center;font-size:13px;font-weight:bold;margin-bottom:2px;}' +
-    '.appr{text-align:center;font-size:12px;font-weight:bold;margin-bottom:16px;}' +
-    '.nb{text-align:center;margin:10px 0 16px;}' +
-    '.nl{display:inline-block;border-bottom:1.5px solid #000;min-width:300px;font-size:20px;padding-bottom:2px;}' +
-    '.nlbl{font-size:11px;color:#555;margin-top:3px;}' +
-    '.frow{display:flex;gap:20px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}' +
-    '.fld{text-align:center;}' +
-    '.fv{border-bottom:1.5px solid #000;min-width:90px;padding-bottom:2px;font-size:12px;display:inline-block;}' +
-    '.fl{font-size:10px;color:#555;margin-top:2px;}' +
-    '.brow{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;flex-wrap:wrap;gap:10px;}' +
-    '.sb{flex:1;min-width:150px;}' +
-    '.sv{font-size:12px;padding-bottom:2px;}' +
-    '.sl{border-bottom:1.5px solid #000;margin-bottom:3px;}' +
-    '.slbl{font-size:10px;color:#555;}' +
-    '.db{text-align:center;}' +
-    '.dv{border-bottom:1.5px solid #000;font-size:12px;padding-bottom:2px;min-width:110px;display:inline-block;}' +
-    '.dlbl{font-size:10px;color:#555;margin-top:2px;}' +
-    '.footer{text-align:center;font-size:10px;font-style:italic;color:#555;margin-top:14px;line-height:1.5;}' +
-    '</style></head><body>' +
-    '<div class="cert-outer"><div class="cert-inner">' +
-    '<div class="top-row">' +
-    '<img src="' + logoSrc + '" style="width:75px;height:60px;object-fit:contain;">' +
-    '<div class="addr">' + escHTML(gs('addr1')) + '<br>' + escHTML(gs('addr2')) + '<br>Phone: ' + escHTML(gs('phone')) + '<br>Email: ' + escHTML(gs('email')) + '<br>Web: ' + escHTML(gs('web')) + '</div>' +
-    '</div>' +
-    '<div class="title">Certificate of Completion</div>' +
-    '<div class="sub">For ' + escHTML(c.name) + '</div>' +
-    '<div class="appr">Approved by the North Carolina Real Estate Commission</div>' +
-    '<div class="nb"><div class="nl">' + escHTML(s.name) + '</div><div class="nlbl">Name</div></div>' +
-    '<div class="frow">' +
-    '<div class="fld"><div class="fv">' + escHTML(courseShort) + '</div><div class="fl">Course</div></div>' +
-    '<div class="fld"><div class="fv">' + escHTML(c.hours||'') + '</div><div class="fl">Course Hours</div></div>' +
-    '<div class="fld"><div class="fv">' + fmtDisp(c.start) + '</div><div class="fl">Course Start Date</div></div>' +
-    '<div class="fld"><div class="fv">' + fmtDisp(c.end) + '</div><div class="fl">Course End Date</div></div>' +
-    '</div>' +
-    '<div class="brow">' +
-    '<div class="sb"><div class="sv">' + escHTML(gs('school')) + ' / ' + escHTML(gs('prov')) + '</div><div class="sl"></div><div class="slbl">Education Provider / Code</div></div>' +
-    '<div class="sb"><div class="sv">' + escHTML(gs('instructor')) + ' / ' + escHTML(gs('instCode')) + '</div><div class="sl"></div><div class="slbl">Instructor / Code</div></div>' +
-    '</div>' +
-    '<div class="brow" style="margin-top:12px;">' +
-    '<div class="sb"><img src="' + sigSrc + '" style="height:42px;max-width:170px;object-fit:contain;display:block;margin-bottom:2px;"><div class="sl"></div><div class="slbl">Education Director Signature</div></div>' +
-    '<div class="db"><div class="dv">' + fmtDisp(c.end) + '</div><div class="dlbl">Date</div></div>' +
-    '</div>' +
-    '<div class="footer"><em>This certificate should be retained as the licensee\'s personal record of course completion.<br>It should NOT be submitted to the Commission unless the Commission specifically requests it.</em></div>' +
-    '</div></div></body></html>';
+  var school = gs('school');
+  var prov = gs('prov');
+  var instructor = gs('instructor');
+  var instCode = gs('instCode');
+  var addr1 = gs('addr1');
+  var addr2 = gs('addr2');
+  var phone = gs('phone');
+  var emailAddr = gs('email');
+  var web = gs('web');
+
+  return '<!DOCTYPE html>' +
+  '<html><head><meta charset="UTF-8">' +
+  '<style>' +
+  'body{font-family:Georgia,serif;background:#fff;color:#000;margin:0;padding:20px;}' +
+  '.wrap{max-width:700px;margin:0 auto;}' +
+  '.cert-outer{border:3px solid #2c2c2a;background:#fff;}' +
+  '.cert-inner{border:1.5px solid #2c2c2a;margin:8px;padding:28px 36px;min-height:500px;display:flex;flex-direction:column;}' +
+  '.top-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}' +
+  '.school-name{font-size:14px;font-weight:bold;color:#c0392b;max-width:180px;line-height:1.4;}' +
+  '.addr{font-size:10px;line-height:1.8;text-align:right;color:#333;}' +
+  '.title{text-align:center;font-size:26px;font-weight:bold;letter-spacing:1px;margin:10px 0 4px;text-transform:uppercase;}' +
+  '.sub{text-align:center;font-size:14px;font-weight:bold;margin-bottom:3px;}' +
+  '.appr{text-align:center;font-size:13px;font-weight:bold;margin-bottom:22px;}' +
+  '.nb{text-align:center;margin:14px 0 22px;}' +
+  '.nl{display:inline-block;border-bottom:1.5px solid #000;min-width:320px;font-size:22px;padding-bottom:3px;}' +
+  '.nlbl{font-size:11px;color:#666;margin-top:4px;}' +
+  '.frow{display:flex;gap:24px;justify-content:center;margin-bottom:22px;flex-wrap:wrap;}' +
+  '.fld{text-align:center;}' +
+  '.fv{border-bottom:1.5px solid #000;min-width:95px;padding-bottom:2px;font-size:13px;display:inline-block;}' +
+  '.fl{font-size:10px;color:#666;margin-top:3px;}' +
+  '.brow{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;flex-wrap:wrap;gap:14px;}' +
+  '.sb{flex:1;min-width:180px;}' +
+  '.sv{font-size:13px;color:#000;padding-bottom:4px;}' +
+  '.sl{border-bottom:1.5px solid #000;margin-bottom:4px;}' +
+  '.slbl{font-size:10px;color:#666;}' +
+  '.sig-img{font-size:18px;font-style:italic;color:#333;font-family:cursive;padding-bottom:4px;}' +
+  '.db{text-align:center;}' +
+  '.dv{border-bottom:1.5px solid #000;font-size:13px;padding-bottom:2px;min-width:120px;display:inline-block;}' +
+  '.dlbl{font-size:10px;color:#666;margin-top:3px;}' +
+  '.footer{text-align:center;font-size:10px;font-style:italic;color:#666;margin-top:20px;line-height:1.6;border-top:1px solid #eee;padding-top:12px;}' +
+  '</style></head><body>' +
+  '<div class="wrap"><div class="cert-outer"><div class="cert-inner">' +
+  '<div class="top-row">' +
+  '<div class="school-name">' + escHTML(school) + '</div>' +
+  '<div class="addr">' + escHTML(addr1) + '<br>' + escHTML(addr2) + '<br>Phone: ' + escHTML(phone) + '<br>Email: ' + escHTML(emailAddr) + '<br>Web: ' + escHTML(web) + '</div>' +
+  '</div>' +
+  '<div class="title">Certificate of Completion</div>' +
+  '<div class="sub">For ' + escHTML(c.name) + '</div>' +
+  '<div class="appr">Approved by the North Carolina Real Estate Commission</div>' +
+  '<div class="nb"><div class="nl">' + escHTML(s.name) + '</div><div class="nlbl">Name</div></div>' +
+  '<div class="frow">' +
+  '<div class="fld"><div class="fv">' + escHTML(courseShort) + '</div><div class="fl">Course</div></div>' +
+  '<div class="fld"><div class="fv">' + escHTML(c.hours||'') + '</div><div class="fl">Course Hours</div></div>' +
+  '<div class="fld"><div class="fv">' + fmtDisp(c.start) + '</div><div class="fl">Course Start Date</div></div>' +
+  '<div class="fld"><div class="fv">' + fmtDisp(c.end) + '</div><div class="fl">Course End Date</div></div>' +
+  '</div>' +
+  '<div class="brow">' +
+  '<div class="sb"><div class="sv">' + escHTML(school) + ' / ' + escHTML(prov) + '</div><div class="sl"></div><div class="slbl">Education Provider / Code</div></div>' +
+  '<div class="sb"><div class="sv">' + escHTML(instructor) + ' / ' + escHTML(instCode) + '</div><div class="sl"></div><div class="slbl">Instructor / Code</div></div>' +
+  '</div>' +
+  '<div class="brow" style="margin-top:16px;">' +
+  '<div class="sb"><div class="sig-img">Keith E. Green</div><div class="sl"></div><div class="slbl">Education Director Signature</div></div>' +
+  '<div class="db"><div class="dv">' + fmtDisp(c.end) + '</div><div class="dlbl">Date</div></div>' +
+  '</div>' +
+  '<div class="footer">This certificate should be retained as the licensee\'s personal record of course completion.<br>It should NOT be submitted to the Commission unless the Commission specifically requests it.</div>' +
+  '</div></div></div>' +
+  '</body></html>';
 }
 
 function encodeToBase64(str) {
@@ -899,8 +908,8 @@ function encodeToBase64(str) {
 }
 
 function sendGmailMessage(s, c, b64cert, filename) {
-  var boundary = 'trea_boundary_' + Date.now();
-  var subject = 'Certificate of Completion \u2014 ' + c.name + ' \u2014 Triangle Real Estate Academy';
+  var boundary = 'trea_' + Date.now();
+  var subject = 'Certificate of Completion - ' + c.name + ' - Triangle Real Estate Academy';
   var bodyText =
     'Dear ' + s.name + ',\n\n' +
     'Greetings,\n\n' +
@@ -922,13 +931,12 @@ function sendGmailMessage(s, c, b64cert, filename) {
 
   var raw = [
     'To: ' + s.email,
-    'Subject: =?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=',
+    'Subject: ' + subject,
     'MIME-Version: 1.0',
     'Content-Type: multipart/mixed; boundary="' + boundary + '"',
     '',
     '--' + boundary,
     'Content-Type: text/plain; charset="UTF-8"',
-    'Content-Transfer-Encoding: quoted-printable',
     '',
     bodyText,
     '',
@@ -942,8 +950,8 @@ function sendGmailMessage(s, c, b64cert, filename) {
     '--' + boundary + '--'
   ].join('\r\n');
 
-  var encodedRaw = btoa(unescape(encodeURIComponent(raw)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  var encodedRaw = btoa(encodeURIComponent(raw).replace(/%([0-9A-F]{2})/g, function(m, p){ return String.fromCharCode('0x'+p); }))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 
   return fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
@@ -956,8 +964,7 @@ function sendGmailMessage(s, c, b64cert, filename) {
     if (!res.ok) return res.json().then(function(e){ throw new Error(JSON.stringify(e)); });
     return res.json();
   });
-}
-// --- END GMAIL ---
+}// --- END GMAIL ---
 
 // ─── INIT ────────────────────────────────────────────────
 loadFromStorage();
