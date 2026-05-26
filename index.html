@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triangle Real Estate Academy — Course Manager</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#2c2c2a;min-height:100vh;}
+.app{max-width:980px;margin:0 auto;padding:1.5rem 1rem;}
+.header{display:flex;align-items:center;gap:14px;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid #ddd;}
+.logo-box{width:52px;height:52px;background:#c0392b;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-box svg{width:36px;height:36px;}
+.school-name{font-size:18px;font-weight:600;color:#2c2c2a;}
+.school-sub{font-size:12px;color:#666;margin-top:2px;}
+.nav{display:flex;gap:4px;margin-bottom:1.5rem;flex-wrap:wrap;background:#fff;border:1px solid #e0e0e0;border-radius:10px;padding:6px;}
+.nav-btn{padding:7px 15px;border:none;border-radius:7px;background:transparent;color:#666;font-size:13px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:5px;}
+.nav-btn.active{background:#c0392b;color:#fff;}
+.nav-btn:hover:not(.active){background:#f5f4f0;}
+.section{display:none;}
+.section.active{display:block;}
+.card{background:#fff;border:1px solid #e8e8e6;border-radius:12px;padding:1.25rem;margin-bottom:1rem;}
+label{font-size:13px;color:#555;display:block;margin-bottom:4px;}
+input,select,textarea{width:100%;font-size:14px;padding:8px 10px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#2c2c2a;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:#c0392b;box-shadow:0 0 0 3px rgba(192,57,43,0.1);}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.field{margin-bottom:12px;}
+.btn{padding:8px 16px;border:1px solid #ddd;border-radius:7px;background:#fff;color:#2c2c2a;font-size:13px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{background:#f5f4f0;}
+.btn-primary{background:#c0392b;color:#fff;border-color:#c0392b;}
+.btn-primary:hover{background:#a93226;}
+.btn-success{background:#27ae60;color:#fff;border-color:#27ae60;}
+.btn-success:hover{background:#219150;}
+.btn-danger{background:#fff0ee;color:#c0392b;border-color:#f5b7b1;font-size:12px;padding:4px 10px;}
+.btn-danger:hover{background:#fde8e5;}
+.btn-secondary{background:#f0f0ee;color:#444;border-color:#ddd;}
+.section-title{font-size:15px;font-weight:600;margin-bottom:1rem;color:#2c2c2a;}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-block;font-weight:500;}
+.badge-blue{background:#e8f4fd;color:#1a6fa0;}
+.badge-orange{background:#fef9e7;color:#b7770d;border:1px solid #f9d946;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:9px 10px;background:#f8f8f6;color:#666;font-weight:600;font-size:12px;border-bottom:1px solid #eee;}
+td{padding:9px 10px;border-bottom:1px solid #f0f0ee;color:#2c2c2a;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf8;}
+.empty{text-align:center;padding:2.5rem;color:#999;font-size:13px;}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.alert-success{background:#eafaf1;color:#1e8449;border:1px solid #a9dfbf;}
+.alert-info{background:#eaf4fb;color:#1a6fa0;border:1px solid #aed6f1;}
+.alert-warn{background:#fef9e7;color:#9a7d0a;border:1px solid #f9e79f;}
+.alert-error{background:#fdedec;color:#922b21;border:1px solid #f5b7b1;}
+.spinner-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.75);display:flex;align-items:center;justify-content:center;z-index:9999;display:none;}
+.spinner{width:40px;height:40px;border:3px solid #eee;border-top-color:#c0392b;border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sync-bar{background:#eaf4fb;border:1px solid #aed6f1;border-radius:8px;padding:8px 14px;font-size:12px;color:#1a6fa0;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+
+/* Certificate */
+@media print{
+  .no-print{display:none!important;}
+  body{background:#fff;}
+  .cert-page{page-break-after:always;}
+}
+.cert-outer{border:3px solid #2c2c2a;border-radius:4px;margin-bottom:20px;background:#fff;color:#000;font-family:Georgia,serif;max-width:780px;}
+.cert-inner{border:1.5px solid #2c2c2a;margin:10px;padding:28px 36px;min-height:540px;display:flex;flex-direction:column;}
+.cert-top-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.cert-addr{font-size:11px;line-height:1.7;text-align:right;color:#2c2c2a;}
+.cert-logo-area{display:flex;align-items:center;gap:10px;}
+.cert-logo-box{width:52px;height:52px;background:#c0392b;border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.cert-school-name{font-size:13px;font-weight:bold;color:#c0392b;line-height:1.4;max-width:160px;}
+.cert-title{text-align:center;font-size:28px;font-weight:bold;letter-spacing:1px;margin:10px 0 4px;color:#000;text-transform:uppercase;}
+.cert-subtitle{text-align:center;font-size:15px;font-weight:bold;margin-bottom:2px;color:#000;}
+.cert-approved{text-align:center;font-size:14px;font-weight:bold;color:#000;margin-bottom:24px;}
+.cert-name-block{text-align:center;margin:12px 0 24px;}
+.cert-name-line{display:inline-block;border-bottom:1.5px solid #000;min-width:360px;font-size:24px;padding-bottom:2px;color:#000;}
+.cert-name-label{font-size:12px;color:#555;margin-top:4px;}
+.cert-fields-row{display:flex;gap:28px;justify-content:center;margin-bottom:28px;flex-wrap:wrap;}
+.cert-field{text-align:center;}
+.cert-field-val{border-bottom:1.5px solid #000;min-width:110px;padding-bottom:2px;font-size:14px;color:#000;display:inline-block;}
+.cert-field-label{font-size:11px;color:#555;margin-top:3px;}
+.cert-bottom-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;flex-wrap:wrap;gap:16px;}
+.cert-sig-block{flex:1;min-width:200px;}
+.cert-sig-val{font-size:14px;color:#000;padding-bottom:2px;}
+.cert-sig-line{border-bottom:1.5px solid #000;margin-bottom:3px;}
+.cert-sig-label{font-size:11px;color:#555;}
+.cert-date-block{text-align:center;}
+.cert-date-val{border-bottom:1.5px solid #000;font-size:14px;padding-bottom:2px;min-width:130px;display:inline-block;color:#000;}
+.cert-date-label{font-size:11px;color:#555;margin-top:3px;}
+.cert-footer{text-align:center;font-size:11px;font-style:italic;color:#555;margin-top:22px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div class="spinner-overlay" id="spinner"><div class="spinner"></div></div>
+
+<div class="app">
+  <div class="header">
+    <div class="logo-box">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,3 29,26 3,26" fill="none" stroke="white" stroke-width="2.5"/>
+        <rect x="12" y="17" width="8" height="9" fill="white"/>
+        <rect x="14" y="17" width="4" height="5" fill="#c0392b"/>
+      </svg>
+    </div>
+    <div>
+      <div class="school-name">Triangle Real Estate Academy</div>
+      <div class="school-sub">127 W. Main Street | Spring Hope, NC 27882 &bull; Provider: 1642 &bull; Instructor: Keith E. Green / 1976</div>
+    </div>
+    <div style="margin-left:auto;">
+      <button class="btn btn-secondary" onclick="loadAll()" title="Sync with Google Sheet">
+        <i class="ti ti-refresh"></i> Sync
+      </button>
+    </div>
+  </div>
+
+  <div id="global-alert" style="display:none;"></div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showTab('courses',this)"><i class="ti ti-book-2"></i> Courses</button>
+    <button class="nav-btn" onclick="showTab('enroll',this)"><i class="ti ti-user-plus"></i> Enroll Students</button>
+    <button class="nav-btn" onclick="showTab('students',this)"><i class="ti ti-users"></i> Students</button>
+    <button class="nav-btn" onclick="showTab('certs',this)"><i class="ti ti-certificate"></i> Certificates</button>
+    <button class="nav-btn" onclick="showTab('export',this)"><i class="ti ti-download"></i> Export / Roster</button>
+    <button class="nav-btn" onclick="showTab('settings',this)"><i class="ti ti-settings"></i> Settings</button>
+  </nav>
+
+  <!-- COURSES -->
+  <div id="tab-courses" class="section active">
+    <div id="alert-courses" style="display:none;"></div>
+    <div class="card">
+      <div class="section-title">Create a new course</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Course number (NCREC assigned)</label>
+          <input type="text" id="cNum" placeholder="e.g. 1234 or PRE or 301">
+        </div>
+        <div class="field">
+          <label>Course name</label>
+          <select id="cName">
+            <option value="">— select —</option>
+            <option>General Update Course</option>
+            <option>Broker-in-Charge Update Course</option>
+            <option>Elective: What Would Your Mama Say?</option>
+            <option>Everyday Ethics v.4</option>
+            <option>Intro to Commercial Real Estate</option>
+            <option>Foreclosures, Short Sales, and REOs</option>
+            <option>Prelicense</option>
+            <option>Post-License 301</option>
+            <option>Post-License 302</option>
+            <option>Post-License 303</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Course hours</label>
+          <input type="number" id="cHours" placeholder="e.g. 4" min="1">
+        </div>
+        <div class="field">
+          <label>Location (optional)</label>
+          <input type="text" id="cLoc" placeholder="e.g. Chapel Hill Office, Online">
+        </div>
+        <div class="field">
+          <label>Beginning date</label>
+          <input type="date" id="cStart">
+        </div>
+        <div class="field">
+          <label>Date finished</label>
+          <input type="date" id="cEnd">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addCourse()"><i class="ti ti-plus"></i> Create course</button>
+    </div>
+    <div class="card">
+      <div class="section-title">Active courses</div>
+      <div id="courses-list"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- ENROLL -->
+  <div id="tab-enroll" class="section">
+    <div id="alert-enroll" style="display:none;"></div>
+    <div class="card">
+      <div class="section-title">Enroll a student</div>
+      <div class="field">
+        <label>Select course</label>
+        <select id="eCourse" onchange="checkPre()"><option value="">— select course —</option></select>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Student full name</label>
+          <input type="text" id="sName" placeholder="First Last (or First MI Last)">
+        </div>
+        <div class="field">
+          <label>License number</label>
+          <input type="text" id="sLic" placeholder="NC license number">
+        </div>
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" id="sEmail" placeholder="student@email.com">
+        </div>
+        <div class="field" id="phoneField" style="display:none;">
+          <label>Phone number <span style="color:#c0392b;">*required for Prelicense</span></label>
+          <input type="tel" id="sPhone" placeholder="919-555-1234">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        <button class="btn btn-primary" onclick="enrollOne()"><i class="ti ti-user-check"></i> Enroll student</button>
+        <button class="btn btn-secondary" onclick="toggleBatch()"><i class="ti ti-table-import"></i> Batch enroll (paste CSV)</button>
+      </div>
+      <div id="batch-area" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid #eee;">
+        <label style="margin-bottom:6px;">One student per line: <code style="font-size:12px;background:#f5f4f0;padding:2px 6px;border-radius:4px;">FirstName LastName, LicenseNum, Email, Phone(optional)</code></label>
+        <textarea id="batchCSV" rows="6" placeholder="Jane Smith, 123456, jane@email.com&#10;John Doe, 789012, john@email.com, 919-555-0001"></textarea>
+        <button class="btn btn-primary" style="margin-top:8px;" onclick="enrollBatch()"><i class="ti ti-upload"></i> Enroll all</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENTS -->
+  <div id="tab-students" class="section">
+    <div class="card" style="padding:0.75rem 1.25rem;margin-bottom:0.75rem;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <label style="margin:0;white-space:nowrap;">Course:</label>
+        <select id="filterC" onchange="renderStudents()" style="flex:1;min-width:180px;"><option value="">All courses</option></select>
+        <input type="text" id="filterN" placeholder="Search by name…" oninput="renderStudents()" style="flex:1;min-width:140px;">
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div id="student-table"><div class="empty" style="padding:2rem;">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- CERTIFICATES -->
+  <div id="tab-certs" class="section">
+    <div id="alert-certs" style="display:none;"></div>
+    <div class="card no-print">
+      <div class="section-title">Generate certificates</div>
+      <div class="field">
+        <label>Select course</label>
+        <select id="certC" onchange="renderCertList()"><option value="">— select course —</option></select>
+      </div>
+      <div id="cert-list-area" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+          <span style="font-size:13px;color:#666;">Select students:</span>
+          <div style="display:flex;gap:6px;">
+            <button class="btn" onclick="certSelectAll(true)" style="font-size:12px;padding:4px 10px;">Select all</button>
+            <button class="btn" onclick="certSelectAll(false)" style="font-size:12px;padding:4px 10px;">Clear</button>
+          </div>
+        </div>
+        <div id="cert-student-list" style="border:1px solid #eee;border-radius:8px;overflow:hidden;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="showCerts()"><i class="ti ti-printer"></i> Preview &amp; Print certificates</button>
+          <button class="btn btn-success" onclick="emailCerts()"><i class="ti ti-mail"></i> Email certificates (batch)</button>
+        </div>
+      </div>
+    </div>
+    <div id="cert-output"></div>
+  </div>
+
+  <!-- EXPORT -->
+  <div id="tab-export" class="section">
+    <div class="card">
+      <div class="section-title"><i class="ti ti-file-text"></i> NCREC commission roster (required format)</div>
+      <p style="font-size:13px;color:#666;margin-bottom:14px;">Generates an ASCII .txt file in the exact NC Real Estate Commission format — quoted fields, header with provider/instructor codes, student names in LASTNAME, FIRSTNAME format. Prelicense rosters automatically include phone and email.</p>
+      <div class="grid2">
+        <div class="field">
+          <label>Select course</label>
+          <select id="exp1C"><option value="">— select course —</option></select>
+        </div>
+        <div class="field">
+          <label>Override course date (MM-DD-YY) — leave blank to use end date</label>
+          <input type="text" id="exp1Date" placeholder="auto-filled from course end date" maxlength="8">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="downloadNCREC()"><i class="ti ti-file-download"></i> Download NCREC roster (.txt)</button>
+    </div>
+    <div class="card">
+      <div class="section-title"><i class="ti ti-table"></i> Completion roster download</div>
+      <p style="font-size:13px;color:#666;margin-bottom:14px;">Full roster with student name, license number, course number, course name, enrollment date, and completion date.</p>
+      <div class="field">
+        <label>Select course (or all)</label>
+        <select id="exp2C"><option value="">All courses</option></select>
+      </div>
+      <button class="btn btn-primary" onclick="downloadCompletion()"><i class="ti ti-download"></i> Download completion roster (.csv)</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="tab-settings" class="section">
+    <div class="card">
+      <div class="section-title">Academy &amp; instructor settings</div>
+      <p style="font-size:13px;color:#666;margin-bottom:14px;">These values appear on certificates and in the NCREC roster file header.</p>
+      <div class="grid2">
+        <div class="field"><label>School name</label><input type="text" id="setSchool" value="Triangle Real Estate Academy"></div>
+        <div class="field"><label>Education Provider code (4-digit)</label><input type="text" id="setProv" value="1642" maxlength="4"></div>
+        <div class="field"><label>Instructor name</label><input type="text" id="setInstructor" value="Keith E. Green"></div>
+        <div class="field"><label>Instructor code (4-digit)</label><input type="text" id="setInstCode" value="1976" maxlength="4"></div>
+        <div class="field"><label>Address line 1</label><input type="text" id="setAddr1" value="127 W. Main Street"></div>
+        <div class="field"><label>Address line 2</label><input type="text" id="setAddr2" value="Spring Hope, NC 27882"></div>
+        <div class="field"><label>Phone</label><input type="text" id="setPhone" value="919-373-3577"></div>
+        <div class="field"><label>Email</label><input type="text" id="setEmail" value="keg@trianglerealestateacademy.com"></div>
+        <div class="field" style="grid-column:span 2;"><label>Website</label><input type="text" id="setWeb" value="www.trianglerealestateacademy.com"></div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()"><i class="ti ti-device-floppy"></i> Save settings</button>
+      <div id="alert-settings" style="display:none;margin-top:10px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbxhnYCRxkl6NlJ1BijMLRjTf5tVIa19BT02j3JxrANbKBNBmRgyLlLwyfpmtb1gIl9D8w/exec';
+let courses = [], students = [];
+
+// Settings stored locally (not in Sheet)
+let settings = JSON.parse(localStorage.getItem('trea_settings') || '{}');
+function gs(k) {
+  const d = { school:'Triangle Real Estate Academy', prov:'1642', instructor:'Keith E. Green', instCode:'1976', addr1:'127 W. Main Street', addr2:'Spring Hope, NC 27882', phone:'919-373-3577', email:'keg@trianglerealestateacademy.com', web:'www.trianglerealestateacademy.com' };
+  return settings[k] || d[k] || '';
+}
+
+function showSpinner(v) { document.getElementById('spinner').style.display = v ? 'flex' : 'none'; }
+
+async function api(params) {
+  const url = API + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function loadAll() {
+  showSpinner(true);
+  try {
+    const [cr, sr] = await Promise.all([api({action:'getCourses'}), api({action:'getStudents'})]);
+    courses = cr.courses || [];
+    students = sr.students || [];
+    renderCourses();
+    renderStudents();
+    refreshSelects();
+    renderCertList();
+  } catch(e) {
+    showGlobalAlert('Could not connect to Google Sheet. Check your internet connection.', 'error');
+  }
+  showSpinner(false);
+}
+
+function showTab(t, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  btn.classList.add('active');
+  refreshSelects();
+  if (t === 'students') renderStudents();
+  if (t === 'certs') renderCertList();
+  if (t === 'settings') loadSettingsForm();
+}
+
+function showAlert(id, msg, type) {
+  const el = document.getElementById(id);
+  el.innerHTML = '<i class="ti ti-' + (type==='success'?'check':type==='error'?'alert-circle':'info-circle') + '"></i> ' + msg;
+  el.className = 'alert alert-' + type;
+  el.style.display = 'flex';
+  setTimeout(() => { el.style.display = 'none'; }, 4500);
+}
+
+function showGlobalAlert(msg, type) { showAlert('global-alert', msg, type); }
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function isPre(c) { return c && c.name === 'Prelicense'; }
+function fmtDisp(d) { if(!d) return ''; const p=String(d).split('-'); return p.length===3?p[1]+'/'+p[2]+'/'+p[0]:d; }
+function fmtNCREC(d) { if(!d) return ''; const p=String(d).split('-'); return p.length===3?p[1]+'-'+p[2]+'-'+p[0].slice(2):d; }
+function ncrecCode(c) {
+  if(!c) return '';
+  if(c.name==='Prelicense') return 'PRE';
+  if(c.name==='Post-License 301') return '301';
+  if(c.name==='Post-License 302') return '302';
+  if(c.name==='Post-License 303') return '303';
+  return c.num||'';
+}
+function toNCRECName(n) {
+  if(!n) return '';
+  const p = n.trim().toUpperCase().split(/\s+/);
+  if(p.length===1) return p[0];
+  if(p.length===2) return p[1]+', '+p[0];
+  return p[p.length-1]+', '+p[0]+' '+p.slice(1,-1).join(' ');
+}
+
+async function addCourse() {
+  const num=document.getElementById('cNum').value.trim();
+  const name=document.getElementById('cName').value;
+  const hours=document.getElementById('cHours').value.trim();
+  const start=document.getElementById('cStart').value;
+  const end=document.getElementById('cEnd').value;
+  const loc=document.getElementById('cLoc').value.trim();
+  if(!num||!name||!start||!end){showAlert('alert-courses','Please fill in course number, name, and dates.','warn');return;}
+  const course={id:Date.now().toString(),num,name,hours,start,end,loc};
+  showSpinner(true);
+  const r = await api({action:'addCourse',data:JSON.stringify(course)});
+  if(r.success){
+    courses.push(course);
+    renderCourses(); refreshSelects();
+    ['cNum','cHours','cLoc','cStart','cEnd'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('cName').value='';
+    showAlert('alert-courses','Course created and saved to Google Sheet.','success');
+  } else { showAlert('alert-courses','Error saving course: '+(r.error||'unknown'),'error'); }
+  showSpinner(false);
+}
+
+function renderCourses() {
+  const el=document.getElementById('courses-list');
+  if(!courses.length){el.innerHTML='<div class="empty">No courses yet. Create one above.</div>';return;}
+  el.innerHTML=courses.map(c=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #f0f0ee;flex-wrap:wrap;gap:8px;">
+      <div>
+        <span class="badge badge-blue" style="margin-right:6px;">${esc(c.num)}</span>
+        <span style="font-weight:600;font-size:14px;">${esc(c.name)}</span>
+        ${isPre(c)?'<span class="badge badge-orange" style="margin-left:6px;">Prelicense</span>':''}
+        <div style="font-size:12px;color:#888;margin-top:3px;">${fmtDisp(c.start)} → ${fmtDisp(c.end)}${c.hours?' &bull; '+esc(c.hours)+' hrs':''}${c.loc?' &bull; '+esc(c.loc):''}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:12px;color:#999;">${students.filter(s=>s.cid===c.id).length} student(s)</span>
+        <button class="btn btn-danger" onclick="delCourse('${c.id}')"><i class="ti ti-trash"></i> Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+async function delCourse(id) {
+  if(!confirm('Delete this course and all its enrolled students?')) return;
+  showSpinner(true);
+  const r = await api({action:'delCourse',id});
+  if(r.success){
+    courses=courses.filter(c=>c.id!==id);
+    students=students.filter(s=>s.cid!==id);
+    renderCourses(); refreshSelects(); renderStudents();
+  } else { showGlobalAlert('Error deleting course.','error'); }
+  showSpinner(false);
+}
+
+function refreshSelects() {
+  ['eCourse','certC','exp1C','filterC'].forEach(id=>{
+    const sel=document.getElementById(id); if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML='<option value="">— select course —</option>'+courses.map(c=>`<option value="${c.id}"${c.id===cur?' selected':''}>${esc(c.num)} — ${esc(c.name)}</option>`).join('');
+  });
+  const s2=document.getElementById('exp2C'); if(s2){
+    const cur=s2.value;
+    s2.innerHTML='<option value="">All courses</option>'+courses.map(c=>`<option value="${c.id}"${c.id===cur?' selected':''}>${esc(c.num)} — ${esc(c.name)}</option>`).join('');
+  }
+}
+
+function checkPre() {
+  const cid=document.getElementById('eCourse').value;
+  const c=courses.find(x=>x.id===cid);
+  document.getElementById('phoneField').style.display=isPre(c)?'block':'none';
+}
+
+async function enrollOne() {
+  const cid=document.getElementById('eCourse').value;
+  const name=document.getElementById('sName').value.trim();
+  const lic=document.getElementById('sLic').value.trim();
+  const email=document.getElementById('sEmail').value.trim();
+  const phone=document.getElementById('sPhone').value.trim();
+  const c=courses.find(x=>x.id===cid);
+  if(!cid||!name||!lic||!email){showAlert('alert-enroll','Please fill in all required fields.','warn');return;}
+  if(isPre(c)&&!phone){showAlert('alert-enroll','Phone number is required for Prelicense courses.','warn');return;}
+  if(students.find(s=>s.cid===cid&&s.lic===lic)){showAlert('alert-enroll','This license number is already enrolled in this course.','warn');return;}
+  const student={id:Date.now().toString(),cid,name,lic,email,phone};
+  showSpinner(true);
+  const r=await api({action:'addStudent',data:JSON.stringify(student)});
+  if(r.success){
+    students.push(student);
+    ['sName','sLic','sEmail','sPhone'].forEach(i=>document.getElementById(i).value='');
+    renderStudents(); refreshSelects();
+    showAlert('alert-enroll',esc(name)+' enrolled and saved to Google Sheet.','success');
+  } else { showAlert('alert-enroll','Error enrolling student: '+(r.error||'unknown'),'error'); }
+  showSpinner(false);
+}
+
+function toggleBatch() {
+  const ba=document.getElementById('batch-area');
+  ba.style.display=ba.style.display==='none'?'block':'none';
+}
+
+async function enrollBatch() {
+  const cid=document.getElementById('eCourse').value;
+  if(!cid){showAlert('alert-enroll','Please select a course first.','warn');return;}
+  const lines=document.getElementById('batchCSV').value.trim().split('\n');
+  let count=0, errs=0;
+  showSpinner(true);
+  for(const line of lines){
+    const p=line.split(',').map(s=>s.trim());
+    if(p[0]&&p[1]&&p[2]){
+      const student={id:Date.now().toString()+Math.random(),cid,name:p[0],lic:p[1],email:p[2],phone:p[3]||''};
+      const r=await api({action:'addStudent',data:JSON.stringify(student)});
+      if(r.success){students.push(student);count++;}
+      else errs++;
+    } else errs++;
+  }
+  document.getElementById('batchCSV').value='';
+  document.getElementById('batch-area').style.display='none';
+  renderStudents(); refreshSelects();
+  showAlert('alert-enroll',count+' student(s) enrolled.'+(errs?' '+errs+' row(s) skipped.':''),'success');
+  showSpinner(false);
+}
+
+function renderStudents() {
+  const el=document.getElementById('student-table');
+  const cid=document.getElementById('filterC').value;
+  const q=(document.getElementById('filterN').value||'').toLowerCase();
+  let list=students.filter(s=>(!cid||s.cid===cid)&&(!q||s.name.toLowerCase().includes(q)));
+  if(!list.length){el.innerHTML='<div class="empty" style="padding:2rem;">No students found.</div>';return;}
+  el.innerHTML='<table><thead><tr><th>Name</th><th>License #</th><th>Email</th><th>Phone</th><th>Course</th><th>Start</th><th>End</th><th></th></tr></thead><tbody>'+
+    list.map(s=>{
+      const c=courses.find(x=>x.id===s.cid);
+      return `<tr><td><strong>${esc(s.name)}</strong></td><td>${esc(s.lic)}</td><td style="color:#1a6fa0;">${esc(s.email)}</td><td>${esc(s.phone||'—')}</td><td>${c?esc(c.num+' — '+c.name):'—'}</td><td>${c?fmtDisp(c.start):'—'}</td><td>${c?fmtDisp(c.end):'—'}</td><td><button class="btn btn-danger" onclick="delStudent('${s.id}')"><i class="ti ti-trash"></i></button></td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+
+async function delStudent(id) {
+  if(!confirm('Remove this student?')) return;
+  showSpinner(true);
+  const r=await api({action:'delStudent',id});
+  if(r.success){students=students.filter(s=>s.id!==id);renderStudents();refreshSelects();}
+  else showGlobalAlert('Error removing student.','error');
+  showSpinner(false);
+}
+
+function renderCertList() {
+  const cid=document.getElementById('certC').value;
+  const area=document.getElementById('cert-list-area');
+  const listEl=document.getElementById('cert-student-list');
+  if(!cid){area.style.display='none';return;}
+  const list=students.filter(s=>s.cid===cid);
+  area.style.display='block';
+  if(!list.length){listEl.innerHTML='<div class="empty" style="padding:1rem;">No students in this course.</div>';return;}
+  listEl.innerHTML=list.map(s=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f0f0ee;">
+      <input type="checkbox" id="ck-${s.id}" value="${s.id}" checked style="width:auto;accent-color:#c0392b;">
+      <label for="ck-${s.id}" style="margin:0;font-size:13px;cursor:pointer;flex:1;">${esc(s.name)}</label>
+      <span style="font-size:12px;color:#999;">${esc(s.lic)}</span>
+    </div>`).join('');
+}
+
+function certSelectAll(v){document.querySelectorAll('#cert-student-list input[type=checkbox]').forEach(cb=>cb.checked=v);}
+function getChecked(){return[...document.querySelectorAll('#cert-student-list input[type=checkbox]:checked')].map(cb=>students.find(s=>s.id===cb.value)).filter(Boolean);}
+
+function buildCert(s,c){
+  const courseShort=c.name.replace(/^Post-License\s*/,'').replace(/^Elective:\s*/,'').replace(/\sv\.\d+$/,'').trim()||c.name;
+  return `
+  <div class="cert-page cert-outer">
+    <div class="cert-inner">
+      <div class="cert-top-row">
+        <div class="cert-logo-area">
+          <div class="cert-logo-box">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none"><polygon points="16,3 29,26 3,26" fill="none" stroke="white" stroke-width="2.5"/><rect x="12" y="17" width="8" height="9" fill="white"/><rect x="14" y="17" width="4" height="5" fill="#c0392b"/></svg>
+          </div>
+          <div class="cert-school-name">${esc(gs('school'))}</div>
+        </div>
+        <div class="cert-addr">
+          ${esc(gs('addr1'))}<br>${esc(gs('addr2'))}<br>
+          Phone: ${esc(gs('phone'))}<br>
+          Email: ${esc(gs('email'))}<br>
+          Web: ${esc(gs('web'))}
+        </div>
+      </div>
+      <div class="cert-title">Certificate of Completion</div>
+      <div class="cert-subtitle">For ${esc(c.name)}</div>
+      <div class="cert-approved">Approved by the North Carolina Real Estate Commission</div>
+      <div class="cert-name-block">
+        <div class="cert-name-line">${esc(s.name)}</div>
+        <div class="cert-name-label">Name</div>
+      </div>
+      <div class="cert-fields-row">
+        <div class="cert-field"><div class="cert-field-val">${esc(courseShort)}</div><div class="cert-field-label">Course</div></div>
+        <div class="cert-field"><div class="cert-field-val">${esc(c.hours||'—')}</div><div class="cert-field-label">Course Hours</div></div>
+        <div class="cert-field"><div class="cert-field-val">${fmtDisp(c.start)}</div><div class="cert-field-label">Course Start Date</div></div>
+        <div class="cert-field"><div class="cert-field-val">${fmtDisp(c.end)}</div><div class="cert-field-label">Course End Date</div></div>
+      </div>
+      <div class="cert-bottom-row">
+        <div class="cert-sig-block">
+          <div class="cert-sig-val">${esc(gs('school'))} / ${esc(gs('prov'))}</div>
+          <div class="cert-sig-line"></div>
+          <div class="cert-sig-label">Education Provider / Code</div>
+        </div>
+        <div class="cert-sig-block">
+          <div class="cert-sig-val">${esc(gs('instructor'))} / ${esc(gs('instCode'))}</div>
+          <div class="cert-sig-line"></div>
+          <div class="cert-sig-label">Instructor / Code</div>
+        </div>
+      </div>
+      <div class="cert-bottom-row" style="margin-top:16px;">
+        <div class="cert-sig-block">
+          <div class="cert-sig-val">${esc(gs('instructor'))}</div>
+          <div class="cert-sig-line"></div>
+          <div class="cert-sig-label">Education Director Signature</div>
+        </div>
+        <div class="cert-date-block">
+          <div class="cert-date-val">${fmtDisp(c.end)}</div>
+          <div class="cert-date-label">Date</div>
+        </div>
+      </div>
+      <div class="cert-footer">
+        <em>This certificate should be retained as the licensee's personal record of course completion.<br>
+        It should NOT be submitted to the Commission unless the Commission specifically requests it.</em>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showCerts(){
+  const cid=document.getElementById('certC').value;
+  const c=courses.find(x=>x.id===cid);
+  const sel=getChecked();
+  if(!sel.length){showAlert('alert-certs','Please select at least one student.','warn');return;}
+  document.getElementById('cert-output').innerHTML=
+    `<div style="margin:1rem 0;" class="no-print"><button class="btn btn-primary" onclick="window.print()"><i class="ti ti-printer"></i> Print / Save as PDF (one per page)</button></div>`+
+    sel.map(s=>buildCert(s,c)).join('');
+  showAlert('alert-certs',sel.length+' certificate(s) ready. Click Print to save as PDF.','success');
+}
+
+function emailCerts(){
+  const cid=document.getElementById('certC').value;
+  const c=courses.find(x=>x.id===cid);
+  const sel=getChecked();
+  if(!sel.length){showAlert('alert-certs','Please select at least one student.','warn');return;}
+  sel.forEach(s=>{
+    const subj=encodeURIComponent('Your Certificate of Completion — '+c.name);
+    const body=encodeURIComponent('Dear '+s.name+',\n\nCongratulations on completing:\n\nCourse: '+c.name+'\nCourse #: '+c.num+'\nHours: '+(c.hours||'')+'\nStart: '+fmtDisp(c.start)+'\nCompleted: '+fmtDisp(c.end)+'\n\nPlease retain your certificate as your personal record of completion.\n\nBest regards,\n'+gs('instructor')+'\n'+gs('school'));
+    window.open('mailto:'+s.email+'?subject='+subj+'&body='+body);
+  });
+  showAlert('alert-certs','Opened '+sel.length+' email draft(s) — review and send from your email client.','success');
+}
+
+function downloadNCREC(){
+  const cid=document.getElementById('exp1C').value;
+  if(!cid){alert('Please select a course.');return;}
+  const c=courses.find(x=>x.id===cid);
+  const list=students.filter(s=>s.cid===cid);
+  if(!list.length){alert('No students enrolled in this course.');return;}
+  const prov=gs('prov').padEnd(4,'0').slice(0,4);
+  const instCode=gs('instCode').padEnd(4,'0').slice(0,4);
+  const override=document.getElementById('exp1Date').value.trim();
+  const courseDate=override||fmtNCREC(c.end);
+  const code=ncrecCode(c);
+  const pre=isPre(c);
+  let lines=['"'+prov+'","'+instCode+'","'+courseDate+'","'+code+'"'];
+  list.forEach(s=>{
+    let line='"'+s.lic+'","'+toNCRECName(s.name)+'"';
+    if(pre){line+=',"'+(s.phone||'')+'"'+',"'+(s.email||'')+'"';}
+    lines.push(line);
+  });
+  const blob=new Blob([lines.join('\r\n')],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='NCREC_Roster_'+c.num+'_'+c.start+'.txt';
+  a.click();
+}
+
+function downloadCompletion(){
+  const cid=document.getElementById('exp2C').value;
+  const list=cid?students.filter(s=>s.cid===cid):students;
+  if(!list.length){alert('No students found.');return;}
+  let csv='Student Name,License Number,Course Number,Course Name,Enrollment Date,Completion Date\n';
+  list.forEach(s=>{
+    const c=courses.find(x=>x.id===s.cid);
+    csv+=[s.name,s.lic,c?c.num:'',c?c.name:'',c?fmtDisp(c.start):'',c?fmtDisp(c.end):''].map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(',')+'\n';
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Completion_Roster_'+(cid||'All')+'.csv';
+  a.click();
+}
+
+function saveSettings(){
+  settings={
+    school:document.getElementById('setSchool').value,
+    prov:document.getElementById('setProv').value,
+    instructor:document.getElementById('setInstructor').value,
+    instCode:document.getElementById('setInstCode').value,
+    addr1:document.getElementById('setAddr1').value,
+    addr2:document.getElementById('setAddr2').value,
+    phone:document.getElementById('setPhone').value,
+    email:document.getElementById('setEmail').value,
+    web:document.getElementById('setWeb').value,
+  };
+  localStorage.setItem('trea_settings',JSON.stringify(settings));
+  showAlert('alert-settings','Settings saved.','success');
+}
+
+function loadSettingsForm(){
+  document.getElementById('setSchool').value=gs('school');
+  document.getElementById('setProv').value=gs('prov');
+  document.getElementById('setInstructor').value=gs('instructor');
+  document.getElementById('setInstCode').value=gs('instCode');
+  document.getElementById('setAddr1').value=gs('addr1');
+  document.getElementById('setAddr2').value=gs('addr2');
+  document.getElementById('setPhone').value=gs('phone');
+  document.getElementById('setEmail').value=gs('email');
+  document.getElementById('setWeb').value=gs('web');
+}
+
+// Load data on startup
+loadAll();
+</script>
+</body>
+</html>
