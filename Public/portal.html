@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Certificate Portal — Triangle Real Estate Academy</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f4f0;color:#2c2c2a;min-height:100vh;}
+.wrap{min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem;}
+.card{background:#fff;border-radius:16px;padding:2rem;width:100%;max-width:680px;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:1px solid #e8e8e6;margin-top:2rem;}
+.header{text-align:center;margin-bottom:1.5rem;}
+.header h1{font-size:22px;font-weight:600;color:#2c2c2a;margin-top:12px;}
+.header p{font-size:13px;color:#666;margin-top:4px;}
+input{width:100%;font-size:15px;padding:10px 14px;border:1px solid #ddd;border-radius:8px;outline:none;}
+input:focus{border-color:#c0392b;box-shadow:0 0 0 3px rgba(192,57,43,0.1);}
+.btn{padding:10px 20px;border:none;border-radius:8px;background:#c0392b;color:#fff;font-size:14px;cursor:pointer;font-weight:500;width:100%;margin-top:10px;}
+.btn:hover{background:#a93226;}
+.btn-dl{background:#27ae60;margin-top:8px;padding:8px 16px;width:auto;font-size:13px;}
+.btn-dl:hover{background:#219150;}
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-top:1rem;}
+.alert-error{background:#fdedec;color:#922b21;border:1px solid #f5b7b1;}
+.result-item{border:1px solid #e8e8e6;border-radius:10px;padding:1rem;margin-top:1rem;}
+.result-item h3{font-size:14px;font-weight:600;color:#2c2c2a;margin-bottom:6px;}
+.meta{font-size:12px;color:#666;line-height:1.8;}
+.back{display:inline-block;margin-top:1rem;font-size:13px;color:#1a6fa0;text-decoration:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card">
+  <div class="header">
+    <div style="font-size:14px;font-weight:600;color:#c0392b;">Triangle Real Estate Academy</div>
+    <h1><i class="ti ti-certificate"></i> Student Certificate Portal</h1>
+    <p>Enter your NC Real Estate license number to find and download your certificates.</p>
+  </div>
+  <input type="text" id="licNum" placeholder="Enter your license number" onkeydown="if(event.key==='Enter')lookup()">
+  <button class="btn" onclick="lookup()"><i class="ti ti-search"></i> Find My Certificates</button>
+  <div id="error" style="display:none;"></div>
+  <div id="results"></div>
+  <div style="text-align:center;margin-top:1.5rem;">
+    <a href="/" class="back"><i class="ti ti-arrow-left"></i> Back to instructor login</a>
+  </div>
+</div>
+</div>
+<script>
+async function lookup() {
+  var lic = document.getElementById('licNum').value.trim();
+  if (!lic) return;
+  document.getElementById('error').style.display='none';
+  document.getElementById('results').innerHTML='<div style="text-align:center;padding:1rem;color:#666;font-size:13px;">Searching...</div>';
+  try {
+    var res = await fetch('/api/portal/' + encodeURIComponent(lic));
+    if (!res.ok) {
+      var err = await res.json();
+      document.getElementById('error').className='alert alert-error';
+      document.getElementById('error').innerHTML='<i class="ti ti-alert-circle"></i> ' + (err.error||'Not found');
+      document.getElementById('error').style.display='block';
+      document.getElementById('results').innerHTML='';
+      return;
+    }
+    var records = await res.json();
+    document.getElementById('results').innerHTML = records.map(function(r) {
+      return '<div class="result-item">'+
+        '<h3><i class="ti ti-certificate"></i> ' + r.course_name + '</h3>'+
+        '<div class="meta">'+
+          'Course #: ' + r.course_num + '<br>'+
+          'Hours: ' + (r.hours||'') + '<br>'+
+          'Start: ' + fmt(r.start_date) + ' &nbsp; End: ' + fmt(r.end_date) +
+        '</div>'+
+        '<button class="btn btn-dl" onclick=\'downloadCert('+JSON.stringify(r)+')\'>'+
+          '<i class="ti ti-file-download"></i> Download Certificate PDF'+
+        '</button>'+
+      '</div>';
+    }).join('');
+  } catch(e) {
+    document.getElementById('error').className='alert alert-error';
+    document.getElementById('error').innerHTML='Error: ' + e.message;
+    document.getElementById('error').style.display='block';
+    document.getElementById('results').innerHTML='';
+  }
+}
+
+function fmt(d) {
+  if(!d) return '';
+  var p = String(d).split('-');
+  return p.length===3 ? p[1]+'/'+p[2]+'/'+p[0] : d;
+}
+
+function downloadCert(r) {
+  if(!window.jspdf||!window.jspdf.jsPDF){alert('PDF library still loading, please wait a moment.');return;}
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'landscape',unit:'mm',format:'letter'});
+  var pw=279.4,ph=215.9,m=10;
+  var courseShort=(r.course_name||'').replace(/^Post-License\s*/,'').replace(/^Elective:\s*/,'').replace(/\sv\.\d+$/,'').trim()||r.course_name;
+  doc.setDrawColor(44,44,42); doc.setLineWidth(1.2); doc.rect(m,m,pw-(m*2),ph-(m*2));
+  doc.setLineWidth(0.4); doc.rect(m+4,m+4,pw-(m*2)-8,ph-(m*2)-8);
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(192,57,43);
+  doc.text('Triangle Real Estate Academy',m+8,m+14);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60,60,60);
+  ['127 W. Main Street','Spring Hope, NC 27882','Phone: 919-373-3577','Email: keg@trianglerealestateacademy.com','Web: www.trianglerealestateacademy.com'].forEach(function(l,i){
+    doc.text(l,pw-m-6,m+10+(i*4.2),{align:'right'});
+  });
+  doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(0,0,0);
+  doc.text('CERTIFICATE OF COMPLETION',pw/2,52,{align:'center'});
+  doc.setFontSize(13); doc.text('For '+(r.course_name||''),pw/2,61,{align:'center'});
+  doc.setFontSize(11); doc.text('Approved by the North Carolina Real Estate Commission',pw/2,69,{align:'center'});
+  doc.setDrawColor(200,200,200); doc.setLineWidth(0.3); doc.line(m+20,73,pw-m-20,73);
+  doc.setFont('helvetica','normal'); doc.setFontSize(22); doc.setTextColor(0,0,0);
+  doc.text(r.name||'',pw/2,92,{align:'center'});
+  doc.setDrawColor(0,0,0); doc.setLineWidth(0.5); doc.line(pw/2-80,95,pw/2+80,95);
+  doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text('Name',pw/2,99,{align:'center'});
+  var fields=[{l:'Course',v:courseShort},{l:'Course Hours',v:String(r.hours||'')},{l:'Course Start Date',v:fmt(r.start_date)},{l:'Course End Date',v:fmt(r.end_date)}];
+  var colW=(pw-80)/fields.length;
+  fields.forEach(function(f,i){
+    var cx=40+(i*colW)+colW/2;
+    doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0); doc.text(f.v,cx,120,{align:'center'});
+    doc.setLineWidth(0.4); doc.setDrawColor(0,0,0); doc.line(cx-colW/2+6,123,cx+colW/2-6,123);
+    doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text(f.l,cx,128,{align:'center'});
+  });
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0);
+  doc.text('Triangle Real Estate Academy / 1642',70,150,{align:'center'});
+  doc.setLineWidth(0.4); doc.line(m+8,153,130,153);
+  doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text('Education Provider / Code',70,158,{align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0);
+  doc.text('Keith E. Green / 1976',pw-70,150,{align:'center'});
+  doc.setLineWidth(0.4); doc.line(148,153,pw-m-8,153);
+  doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text('Instructor / Code',pw-70,158,{align:'center'});
+  doc.setFont('times','italic'); doc.setFontSize(16); doc.setTextColor(40,40,40); doc.text('Keith E. Green',70,174,{align:'center'});
+  doc.setLineWidth(0.4); doc.setDrawColor(0,0,0); doc.line(m+8,178,130,178);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text('Education Director Signature',70,183,{align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0); doc.text(fmt(r.end_date),pw-70,174,{align:'center'});
+  doc.setLineWidth(0.4); doc.setDrawColor(0,0,0); doc.line(148,178,pw-m-8,178);
+  doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text('Date',pw-70,183,{align:'center'});
+  doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(140,140,140);
+  doc.text("This certificate should be retained as the licensee's personal record of course completion.",pw/2,ph-m-10,{align:'center'});
+  doc.text("It should NOT be submitted to the Commission unless the Commission specifically requests it.",pw/2,ph-m-5,{align:'center'});
+  doc.save((r.name||'Student').replace(/[^a-zA-Z0-9]/g,'_')+'_Certificate.pdf');
+}
+</script>
+</body>
+</html>
