@@ -12,22 +12,20 @@ const { google } = require('googleapis');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── GMAIL OAUTH2 ─────────────────────────────────────────
-const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
-const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
-const RAILWAY_URL = process.env.RAILWAY_URL || 'https://triangle-rea-production.up.railway.app';
-const REDIRECT_URI = RAILWAY_URL + '/auth/google/callback';
-
+// ─── OAUTH2 CLIENT ────────────────────────────────────────
 const oauth2Client = new google.auth.OAuth2(
-  GMAIL_CLIENT_ID,
-  GMAIL_CLIENT_SECRET,
-  REDIRECT_URI
+  process.env.GMAIL_CLIENT_ID,
+  process.env.GMAIL_CLIENT_SECRET,
+  'https://triangle-rea-production.up.railway.app/auth/google/callback'
 );
+
+// Store tokens in memory (persisted to DB)
+let gmailTokens = null;
 
 // ─── DATABASE ─────────────────────────────────────────────
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: { rejectUnauthorized: false }
 });
 
 async function initDB() {
@@ -51,38 +49,41 @@ async function initDB() {
       id SERIAL PRIMARY KEY,
       username TEXT UNIQUE, password TEXT
     );
-    CREATE TABLE IF NOT EXISTS gmail_tokens (
-      id SERIAL PRIMARY KEY,
-      access_token TEXT,
-      refresh_token TEXT,
-      expiry_date BIGINT,
-      updated_at TIMESTAMP DEFAULT NOW()
+    CREATE TABLE IF NOT EXISTS tokens (
+      id TEXT PRIMARY KEY, value TEXT
     );
   `);
 
+  // Default admin
   const existing = await pool.query("SELECT * FROM users WHERE username='admin'");
   if (existing.rows.length === 0) {
     const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'triangleREA2024!', 10);
     await pool.query("INSERT INTO users(username,password) VALUES('admin',$1)", [hash]);
   }
 
-  const defaultSettings = {
-    school: 'Triangle Real Estate Academy',
-    prov: '1642',
-    instructor: 'Keith E. Green',
-    instCode: '1976',
-    addr1: '127 W. Main Street',
-    addr2: 'Spring Hope, NC 27882',
-    phone: '919-373-3577',
-    email: 'keg@trianglerealestateacademy.com',
+  // Default settings
+  const defaults = {
+    school: 'Triangle Real Estate Academy', prov: '1642',
+    instructor: 'Keith E. Green', instCode: '1976',
+    addr1: '127 W. Main Street', addr2: 'Spring Hope, NC 27882',
+    phone: '919-373-3577', email: 'keg@trianglerealestateacademy.com',
     web: 'www.trianglerealestateacademy.com'
   };
-  for (const [key, value] of Object.entries(defaultSettings)) {
+  for (const [key, value] of Object.entries(defaults)) {
     await pool.query(
       'INSERT INTO settings(key,value) VALUES($1,$2) ON CONFLICT(key) DO NOTHING',
       [key, value]
     );
   }
+
+  // Load saved Gmail tokens
+  const tok = await pool.query("SELECT value FROM tokens WHERE id='gmail'");
+  if (tok.rows.length > 0) {
+    gmailTokens = JSON.parse(tok.rows[0].value);
+    oauth2Client.setCredentials(gmailTokens);
+    console.log('Gmail tokens loaded from database');
+  }
+
   console.log('Database initialized successfully');
 }
 
@@ -133,7 +134,7 @@ function ncrecCode(course) {
   return course.num || '';
 }
 
-// ─── GMAIL OAUTH2 ROUTES ──────────────────────────────────
+// ─── GMAIL OAUTH2 AUTH ────────────────────────────────────
 app.get('/auth/google', requireAuth, (req, res) => {
   const url = oauth2Client.generateAuthUrl({
     access_type: 'offline',
@@ -143,55 +144,32 @@ app.get('/auth/google', requireAuth, (req, res) => {
   res.redirect(url);
 });
 
-app.get('/auth/google/callback', requireAuth, async (req, res) => {
-  const { code } = req.query;
+app.get('/auth/google/callback', async (req, res) => {
   try {
+    const { code } = req.query;
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
-    await pool.query('DELETE FROM gmail_tokens');
+    gmailTokens = tokens;
     await pool.query(
-      'INSERT INTO gmail_tokens(access_token, refresh_token, expiry_date) VALUES($1,$2,$3)',
-      [tokens.access_token, tokens.refresh_token, tokens.expiry_date]
+      "INSERT INTO tokens(id,value) VALUES('gmail',$1) ON CONFLICT(id) DO UPDATE SET value=$1",
+      [JSON.stringify(tokens)]
     );
     res.redirect('/?gmail=connected');
-  } catch (err) {
-    console.error('Gmail OAuth error:', err);
+  } catch(err) {
+    console.error('OAuth callback error:', err);
     res.redirect('/?gmail=error');
   }
 });
 
-app.get('/api/gmail-status', requireAuth, async (req, res) => {
-  const result = await pool.query('SELECT * FROM gmail_tokens LIMIT 1');
-  res.json({ connected: result.rows.length > 0 });
+app.get('/api/gmail-status', requireAuth, (req, res) => {
+  res.json({ connected: !!gmailTokens });
 });
 
-app.delete('/api/gmail-disconnect', requireAuth, async (req, res) => {
-  await pool.query('DELETE FROM gmail_tokens');
+app.post('/api/gmail-disconnect', requireAuth, async (req, res) => {
+  gmailTokens = null;
+  await pool.query("DELETE FROM tokens WHERE id='gmail'");
   res.json({ success: true });
 });
-
-async function getGmailTransporter() {
-  const result = await pool.query('SELECT * FROM gmail_tokens LIMIT 1');
-  if (!result.rows.length) throw new Error('Gmail not connected. Please connect Gmail first.');
-  const tokens = result.rows[0];
-  oauth2Client.setCredentials({
-    access_token: tokens.access_token,
-    refresh_token: tokens.refresh_token,
-    expiry_date: tokens.expiry_date
-  });
-  const accessToken = await oauth2Client.getAccessToken();
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      type: 'OAuth2',
-      user: process.env.GMAIL_USER || 'keg@trianglerealestateacademy.com',
-      clientId: GMAIL_CLIENT_ID,
-      clientSecret: GMAIL_CLIENT_SECRET,
-      refreshToken: tokens.refresh_token,
-      accessToken: accessToken.token
-    }
-  });
-}
 
 // ─── AUTH ROUTES ──────────────────────────────────────────
 app.post('/api/login', async (req, res) => {
@@ -299,84 +277,110 @@ app.post('/api/settings', requireAuth, async (req, res) => {
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-// ─── SEND CERTIFICATES ────────────────────────────────────
+// ─── SEND CERTIFICATES VIA GMAIL OAUTH2 ──────────────────
 app.post('/api/send-certificates', requireAuth, async (req, res) => {
-  const { courseId, studentIds } = req.body;
-  if (!courseId || !studentIds || !studentIds.length) {
-    return res.status(400).json({ error: 'Missing courseId or studentIds' });
+  if (!gmailTokens) {
+    return res.status(401).json({ error: 'Gmail not connected. Please connect Gmail first.' });
   }
-  try {
-    const s = await getSettings();
-    const courseResult = await pool.query('SELECT * FROM courses WHERE id=$1', [courseId]);
-    if (!courseResult.rows.length) return res.status(404).json({ error: 'Course not found' });
-    const course = courseResult.rows[0];
-    const studResult = await pool.query(
-      'SELECT * FROM students WHERE id = ANY($1::text[])', [studentIds]
-    );
-    const transporter = await getGmailTransporter();
-    const results = { sent: [], failed: [] };
-    for (const student of studResult.rows) {
-      try {
-        const pdfBuffer = generateCertPDFBuffer(student, course, s);
-        const emailBody = buildEmailBody(student, course);
-        await transporter.sendMail({
-          from: `"${s.school}" <${process.env.GMAIL_USER || s.email}>`,
-          to: student.email,
-          subject: `Certificate of Completion — ${course.name} — Triangle Real Estate Academy`,
-          text: emailBody,
-          attachments: [{
-            filename: student.name.replace(/[^a-zA-Z0-9]/g,'_') + '_Certificate.pdf',
-            content: pdfBuffer,
-            contentType: 'application/pdf'
-          }]
-        });
-        results.sent.push(student.name);
-      } catch(err) {
-        console.error('Failed:', student.name, err.message);
-        results.failed.push({ name: student.name, error: err.message });
-      }
-    }
-    res.json(results);
-  } catch(err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-function buildEmailBody(student, course) {
-  return `Dear ${student.name},\n\nGreetings,\n\nCongratulations on completing your course! Attached is your certificate of completion. If you have any questions, please do not hesitate to contact me. Thank you so much for using Triangle Real Estate Academy.\n\nCourse: ${course.name}\nCourse #: ${course.num}\nHours: ${course.hours || ''}\nStart Date: ${fmtDate(course.start_date)}\nCompletion Date: ${fmtDate(course.end_date)}\n\nKeith E. Green, M.Ed, GSI\nEducation Director/Instructor\nTriangle Real Estate Academy\n127 W. Main Street | Spring Hope, NC 27882\nPhone: 919-373-3577\nEmail: keg@trianglerealestateacademy.com\nWeb: www.trianglerealestateacademy.com`;
-}
+  const { courseId, studentIds } = req.body;
+  const s = await getSettings();
+  const courseResult = await pool.query('SELECT * FROM courses WHERE id=$1', [courseId]);
+  if (!courseResult.rows.length) return res.status(404).json({ error: 'Course not found' });
+  const course = courseResult.rows[0];
+
+  const studResult = await pool.query(
+    'SELECT * FROM students WHERE id = ANY($1::text[])', [studentIds]
+  );
+
+  // Refresh token if needed
+  oauth2Client.setCredentials(gmailTokens);
+  const { credentials } = await oauth2Client.refreshAccessToken();
+  gmailTokens = credentials;
+  await pool.query(
+    "INSERT INTO tokens(id,value) VALUES('gmail',$1) ON CONFLICT(id) DO UPDATE SET value=$1",
+    [JSON.stringify(credentials)]
+  );
+
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      type: 'OAuth2',
+      user: s.email || process.env.GMAIL_USER,
+      clientId: process.env.GMAIL_CLIENT_ID,
+      clientSecret: process.env.GMAIL_CLIENT_SECRET,
+      refreshToken: gmailTokens.refresh_token,
+      accessToken: gmailTokens.access_token
+    }
+  });
+
+  const results = { sent: [], failed: [] };
+
+  for (const student of studResult.rows) {
+    try {
+      const pdfBuffer = generateCertPDFBuffer(student, course, s);
+      const bodyText =
+        `Dear ${student.name},\n\nGreetings,\n\n` +
+        `Congratulations on completing your course! Attached is your certificate of completion. ` +
+        `If you have any questions, please do not hesitate to contact me. ` +
+        `Thank you so much for using Triangle Real Estate Academy.\n\n` +
+        `Course: ${course.name}\nCourse #: ${course.num}\nHours: ${course.hours || ''}\n` +
+        `Start Date: ${fmtDate(course.start_date)}\nCompletion Date: ${fmtDate(course.end_date)}\n\n` +
+        `Keith E. Green, M.Ed, GSI\nEducation Director/Instructor\nTriangle Real Estate Academy\n` +
+        `127 W. Main Street | Spring Hope, NC 27882\nPhone: 919-373-3577\n` +
+        `Email: keg@trianglerealestateacademy.com\nWeb: www.trianglerealestateacademy.com`;
+
+      await transporter.sendMail({
+        from: `"${s.school}" <${s.email}>`,
+        to: student.email,
+        subject: `Certificate of Completion — ${course.name} — Triangle Real Estate Academy`,
+        text: bodyText,
+        attachments: [{
+          filename: student.name.replace(/[^a-zA-Z0-9]/g, '_') + '_Certificate.pdf',
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }]
+      });
+      results.sent.push(student.name);
+    } catch(err) {
+      console.error('Failed to send to', student.name, err.message);
+      results.failed.push({ name: student.name, error: err.message });
+    }
+  }
+
+  res.json(results);
+});
 
 // ─── PDF GENERATION ───────────────────────────────────────
 function generateCertPDFBuffer(student, course, s) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
-  const pw = 279.4, ph = 215.9, margin = 10;
+  const pw = 279.4, ph = 215.9, m = 10;
   const courseShort = course.name
-    .replace(/^Post-License\s*/,'').replace(/^Elective:\s*/,'')
-    .replace(/\sv\.\d+$/,'').trim() || course.name;
+    .replace(/^Post-License\s*/, '').replace(/^Elective:\s*/, '')
+    .replace(/\sv\.\d+$/, '').trim() || course.name;
 
   doc.setDrawColor(44,44,42); doc.setLineWidth(1.2);
-  doc.rect(margin, margin, pw-(margin*2), ph-(margin*2));
+  doc.rect(m, m, pw-(m*2), ph-(m*2));
   doc.setLineWidth(0.4);
-  doc.rect(margin+4, margin+4, pw-(margin*2)-8, ph-(margin*2)-8);
+  doc.rect(m+4, m+4, pw-(m*2)-8, ph-(m*2)-8);
 
   doc.setFont('helvetica','bold'); doc.setFontSize(11);
   doc.setTextColor(192,57,43);
-  doc.text(s.school || 'Triangle Real Estate Academy', margin+8, margin+14);
+  doc.text(s.school || 'Triangle Real Estate Academy', m+8, m+14);
 
   doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60,60,60);
   [s.addr1, s.addr2, 'Phone: '+s.phone, 'Email: '+s.email, 'Web: '+s.web].forEach((line,i) => {
-    doc.text(line||'', pw-margin-6, margin+10+(i*4.2), {align:'right'});
+    doc.text(line||'', pw-m-6, m+10+(i*4.2), {align:'right'});
   });
 
   doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(0,0,0);
   doc.text('CERTIFICATE OF COMPLETION', pw/2, 52, {align:'center'});
-  doc.setFontSize(13);
-  doc.text('For ' + course.name, pw/2, 61, {align:'center'});
+  doc.setFontSize(13); doc.text('For ' + course.name, pw/2, 61, {align:'center'});
   doc.setFontSize(11);
   doc.text('Approved by the North Carolina Real Estate Commission', pw/2, 69, {align:'center'});
 
   doc.setDrawColor(200,200,200); doc.setLineWidth(0.3);
-  doc.line(margin+20, 73, pw-margin-20, 73);
+  doc.line(m+20, 73, pw-m-20, 73);
 
   doc.setFont('helvetica','normal'); doc.setFontSize(22); doc.setTextColor(0,0,0);
   doc.text(student.name, pw/2, 92, {align:'center'});
@@ -393,7 +397,7 @@ function generateCertPDFBuffer(student, course, s) {
   ];
   const colW = (pw-80)/fields.length;
   fields.forEach((f,i) => {
-    const cx = 40+(i*colW)+colW/2;
+    const cx = 40 + (i*colW) + colW/2;
     doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0);
     doc.text(f.val, cx, 120, {align:'center'});
     doc.setLineWidth(0.4); doc.setDrawColor(0,0,0);
@@ -404,33 +408,33 @@ function generateCertPDFBuffer(student, course, s) {
 
   doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0);
   doc.text((s.school||'') + ' / ' + (s.prov||''), 70, 150, {align:'center'});
-  doc.setLineWidth(0.4); doc.line(margin+8, 153, 130, 153);
+  doc.setLineWidth(0.4); doc.line(m+8, 153, 130, 153);
   doc.setFontSize(8); doc.setTextColor(120,120,120);
   doc.text('Education Provider / Code', 70, 158, {align:'center'});
 
   doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0);
   doc.text((s.instructor||'') + ' / ' + (s.instCode||''), pw-70, 150, {align:'center'});
-  doc.setLineWidth(0.4); doc.line(148, 153, pw-margin-8, 153);
+  doc.setLineWidth(0.4); doc.line(148, 153, pw-m-8, 153);
   doc.setFontSize(8); doc.setTextColor(120,120,120);
   doc.text('Instructor / Code', pw-70, 158, {align:'center'});
 
   doc.setFont('times','italic'); doc.setFontSize(16); doc.setTextColor(40,40,40);
   doc.text('Keith E. Green', 70, 174, {align:'center'});
   doc.setLineWidth(0.4); doc.setDrawColor(0,0,0);
-  doc.line(margin+8, 178, 130, 178);
+  doc.line(m+8, 178, 130, 178);
   doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(120,120,120);
   doc.text('Education Director Signature', 70, 183, {align:'center'});
 
   doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(0,0,0);
   doc.text(fmtDate(course.end_date), pw-70, 174, {align:'center'});
   doc.setLineWidth(0.4); doc.setDrawColor(0,0,0);
-  doc.line(148, 178, pw-margin-8, 178);
+  doc.line(148, 178, pw-m-8, 178);
   doc.setFontSize(8); doc.setTextColor(120,120,120);
   doc.text('Date', pw-70, 183, {align:'center'});
 
   doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(140,140,140);
-  doc.text("This certificate should be retained as the licensee's personal record of course completion.", pw/2, ph-margin-10, {align:'center'});
-  doc.text("It should NOT be submitted to the Commission unless the Commission specifically requests it.", pw/2, ph-margin-5, {align:'center'});
+  doc.text("This certificate should be retained as the licensee's personal record of course completion.", pw/2, ph-m-10, {align:'center'});
+  doc.text("It should NOT be submitted to the Commission unless the Commission specifically requests it.", pw/2, ph-m-5, {align:'center'});
 
   return Buffer.from(doc.output('arraybuffer'));
 }
@@ -454,12 +458,14 @@ app.post('/api/ncrec-roster', requireAuth, async (req, res) => {
     }
     const code = ncrecCode(course);
     const isPre = course.name === 'Prelicense';
+
     let lines = [`"${prov}","${instCode}","${dateStr}","${code}"`];
     studResult.rows.forEach(stu => {
       let line = `"${stu.license_num}","${toNCRECName(stu.name)}"`;
       if (isPre) line += `,"${stu.phone||''}","${stu.email||''}"`;
       lines.push(line);
     });
+
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Content-Disposition', `attachment; filename="NCREC_Roster_${course.num}.txt"`);
     res.send(lines.join('\r\n'));
@@ -489,10 +495,7 @@ app.get('/portal', (req, res) => {
 
 // ─── START ────────────────────────────────────────────────
 initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Triangle REA Server running on port ${PORT}`);
-    console.log(`Railway URL: ${RAILWAY_URL}`);
-  });
+  app.listen(PORT, () => console.log(`Triangle REA Server running on port ${PORT}`));
 }).catch(err => {
   console.error('DB init failed:', err);
   process.exit(1);

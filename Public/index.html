@@ -208,6 +208,16 @@ tr:hover td{background:#fafaf8;}
           <button class="btn btn-success" onclick="sendCertificatesServer()"><i class="ti ti-send"></i> Send via Gmail (auto)</button>
           <button class="btn btn-secondary" onclick="showCertsPreview()"><i class="ti ti-eye"></i> Preview</button>
         </div>
+        <div id="gmail-connect-bar" style="display:none;margin-top:10px;padding:10px 14px;background:#fef9e7;border:1px solid #f9e79f;border-radius:8px;font-size:13px;color:#9a7d0a;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <i class="ti ti-alert-triangle"></i> Gmail not connected.
+          <a href="/auth/google" class="btn btn-primary" style="padding:5px 12px;font-size:12px;text-decoration:none;"><i class="ti ti-brand-google"></i> Connect Gmail</a>
+        </div>
+        <div id="gmail-connected-bar" style="display:none;margin-top:10px;padding:10px 14px;background:#eafaf1;border:1px solid #a9dfbf;border-radius:8px;font-size:13px;color:#1e8449;display:flex;align-items:center;gap:10px;">
+          <i class="ti ti-check"></i> Gmail connected — ready to send certificates automatically!
+          <button onclick="disconnectGmail()" class="btn" style="padding:4px 10px;font-size:11px;margin-left:auto;">Disconnect</button>
+        </div>
+        <div style="display:none;">
+        </div>
         <div id="send-status" style="display:none;margin-top:10px;"></div>
       </div>
     </div>
@@ -312,7 +322,17 @@ function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
   loadAll();
+  checkGmailStatus();
   document.getElementById('portal-url').textContent = window.location.origin + '/portal';
+  // Check if returning from Gmail auth
+  if(window.location.search.includes('gmail=connected')){
+    showGlobalAlert('Gmail connected successfully! You can now auto-send certificates.', 'success');
+    window.history.replaceState({}, document.title, '/');
+  }
+  if(window.location.search.includes('gmail=error')){
+    showGlobalAlert('Gmail connection failed. Please try again.', 'error');
+    window.history.replaceState({}, document.title, '/');
+  }
 }
 
 // ─── LOAD DATA ───────────────────────────────────────────
@@ -545,8 +565,14 @@ async function sendCertificatesServer() {
       statusEl.innerHTML='<i class="ti ti-check"></i> All '+result.sent.length+' certificate(s) sent successfully!';
     }
   }catch(e){
-    statusEl.className='alert alert-error';
-    statusEl.innerHTML='<i class="ti ti-alert-circle"></i> Error: '+e.message+'. Check Gmail settings in Railway environment variables.';
+    if(e.message.includes('Gmail not connected')){
+      statusEl.className='alert alert-warn';
+      statusEl.innerHTML='<i class="ti ti-alert-triangle"></i> Gmail not connected. Click the "Connect Gmail" button above first.';
+      checkGmailStatus();
+    } else {
+      statusEl.className='alert alert-error';
+      statusEl.innerHTML='<i class="ti ti-alert-circle"></i> Error: '+e.message;
+    }
   }
 }
 
@@ -723,6 +749,28 @@ function copyPortalUrl(){
   navigator.clipboard.writeText(window.location.origin+'/portal').then(function(){
     showGlobalAlert('Portal link copied to clipboard!','success');
   });
+}
+
+// ─── GMAIL STATUS ────────────────────────────────────────
+async function checkGmailStatus() {
+  try {
+    var result = await api('GET', '/api/gmail-status');
+    var connectBar = document.getElementById('gmail-connect-bar');
+    var connectedBar = document.getElementById('gmail-connected-bar');
+    if(result.connected) {
+      if(connectBar) connectBar.style.display = 'none';
+      if(connectedBar) connectedBar.style.display = 'flex';
+    } else {
+      if(connectBar) connectBar.style.display = 'flex';
+      if(connectedBar) connectedBar.style.display = 'none';
+    }
+  } catch(e) { console.log('Gmail status check failed:', e.message); }
+}
+
+async function disconnectGmail() {
+  await api('POST', '/api/gmail-disconnect');
+  checkGmailStatus();
+  showGlobalAlert('Gmail disconnected.', 'info');
 }
 
 // ─── INIT ────────────────────────────────────────────────
