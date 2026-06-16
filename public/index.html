@@ -68,12 +68,12 @@ tr:hover td{background:#fafaf8;}
 </style>
 </head>
 <body>
-
+ 
 <!-- LOGIN SCREEN -->
-<div id="login-screen" class="login-wrap" style="display:none;">
+<div id="login-screen" class="login-wrap" style="display:flex;">
   <div class="login-card">
     <div class="login-logo">
-      <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8Q..." style="max-width:120px;" onerror="this.style.display='none'">
+      
       <div style="font-size:20px;font-weight:600;color:#c0392b;margin-top:8px;">Triangle Real Estate Academy</div>
       <div style="font-size:13px;color:#666;margin-top:4px;">Course Manager</div>
     </div>
@@ -86,7 +86,7 @@ tr:hover td{background:#fafaf8;}
     </div>
   </div>
 </div>
-
+ 
 <!-- MAIN APP -->
 <div id="main-app" style="display:none;">
 <div class="app">
@@ -103,9 +103,9 @@ tr:hover td{background:#fafaf8;}
       <button class="btn btn-secondary" onclick="doLogout()" style="font-size:12px;padding:5px 10px;"><i class="ti ti-logout"></i> Logout</button>
     </div>
   </div>
-
+ 
   <div id="global-alert" style="display:none;"></div>
-
+ 
   <nav class="nav">
     <button class="nav-btn active" onclick="showTab('courses',this)"><i class="ti ti-book-2"></i> Courses</button>
     <button class="nav-btn" onclick="showTab('enroll',this)"><i class="ti ti-user-plus"></i> Enroll Students</button>
@@ -114,7 +114,7 @@ tr:hover td{background:#fafaf8;}
     <button class="nav-btn" onclick="showTab('export',this)"><i class="ti ti-download"></i> Export / Roster</button>
     <button class="nav-btn" onclick="showTab('settings',this)"><i class="ti ti-settings"></i> Settings</button>
   </nav>
-
+ 
   <!-- COURSES -->
   <div id="tab-courses" class="section active">
     <div id="alert-courses" style="display:none;"></div>
@@ -149,7 +149,7 @@ tr:hover td{background:#fafaf8;}
       <div id="courses-list"><div class="empty">Loading...</div></div>
     </div>
   </div>
-
+ 
   <!-- ENROLL -->
   <div id="tab-enroll" class="section">
     <div id="alert-enroll" style="display:none;"></div>
@@ -173,7 +173,7 @@ tr:hover td{background:#fafaf8;}
       </div>
     </div>
   </div>
-
+ 
   <!-- STUDENTS -->
   <div id="tab-students" class="section">
     <div class="card" style="padding:0.75rem 1.25rem;margin-bottom:0.75rem;">
@@ -187,7 +187,7 @@ tr:hover td{background:#fafaf8;}
       <div id="student-table"><div class="empty" style="padding:2rem;">Loading...</div></div>
     </div>
   </div>
-
+ 
   <!-- CERTIFICATES -->
   <div id="tab-certs" class="section">
     <div id="alert-certs" style="display:none;"></div>
@@ -223,7 +223,7 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div id="cert-output"></div>
   </div>
-
+ 
   <!-- EXPORT -->
   <div id="tab-export" class="section">
     <div class="card">
@@ -241,7 +241,7 @@ tr:hover td{background:#fafaf8;}
       <button class="btn btn-primary" onclick="downloadCompletion()"><i class="ti ti-download"></i> Download completion roster (.csv)</button>
     </div>
   </div>
-
+ 
   <!-- SETTINGS -->
   <div id="tab-settings" class="section">
     <div class="card">
@@ -267,15 +267,15 @@ tr:hover td{background:#fafaf8;}
       <button class="btn btn-secondary" style="margin-top:8px;" onclick="copyPortalUrl()"><i class="ti ti-copy"></i> Copy link</button>
     </div>
   </div>
-
+ 
 </div><!-- end .app -->
 </div><!-- end #main-app -->
-
+ 
 <script>
 var LOGO_B64 =  + logo_b64 + ;
 var SIG_B64 =  + sig_b64 + ;
 var courses = [], students = [], settingsData = {};
-
+ 
 // ─── API ─────────────────────────────────────────────────
 async function api(method, url, body) {
   var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
@@ -285,17 +285,23 @@ async function api(method, url, body) {
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
-
+ 
 // ─── AUTH ────────────────────────────────────────────────
 async function checkAuth() {
+  // Always show login first
+  showLogin();
   try {
-    await api('GET', '/api/me');
-    showApp();
+    var result = await api('GET', '/api/me');
+    if(result && result.user) {
+      showApp();
+    } else {
+      showLogin();
+    }
   } catch(e) {
     showLogin();
   }
 }
-
+ 
 async function doLogin() {
   var user = document.getElementById('loginUser').value;
   var pass = document.getElementById('loginPass').value;
@@ -306,18 +312,18 @@ async function doLogin() {
     showAlert('login-alert', 'Invalid username or password.', 'error');
   }
 }
-
+ 
 async function doLogout() {
   await api('POST', '/api/logout');
   document.getElementById('main-app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
 }
-
+ 
 function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('main-app').style.display = 'none';
 }
-
+ 
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('main-app').style.display = 'block';
@@ -334,7 +340,7 @@ function showApp() {
     window.history.replaceState({}, document.title, '/');
   }
 }
-
+ 
 // ─── LOAD DATA ───────────────────────────────────────────
 async function loadAll() {
   try {
@@ -349,7 +355,7 @@ async function loadAll() {
     showGlobalAlert('Error loading data: ' + e.message, 'error');
   }
 }
-
+ 
 // ─── UI HELPERS ──────────────────────────────────────────
 function showTab(t, btn) {
   document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
@@ -360,7 +366,7 @@ function showTab(t, btn) {
   if(t==='students') renderStudents();
   if(t==='certs') renderCertList();
 }
-
+ 
 function showAlert(id, msg, type) {
   var icons = {success:'check',info:'info-circle',warn:'alert-triangle',error:'alert-circle'};
   var el = document.getElementById(id);
@@ -374,7 +380,7 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 function isPre(c){ return c && c.name === 'Prelicense'; }
 function fmtDisp(d){ if(!d) return ''; var p=String(d).split('-'); return p.length===3?p[1]+'/'+p[2]+'/'+p[0]:d; }
 function gs(k){ return settingsData[k] || ''; }
-
+ 
 function ncrecCode(c) {
   if(c.name==='Prelicense') return 'PRE';
   if(c.name==='Post-License 301') return '301';
@@ -389,7 +395,7 @@ function toNCRECName(n){
   if(p.length===2) return p[1]+', '+p[0];
   return p[p.length-1]+', '+p[0]+' '+p.slice(1,-1).join(' ');
 }
-
+ 
 // ─── COURSES ─────────────────────────────────────────────
 async function addCourse() {
   var num=document.getElementById('cNum').value.trim();
@@ -409,7 +415,7 @@ async function addCourse() {
     showAlert('alert-courses','Course created and saved to database.','success');
   } catch(e){ showAlert('alert-courses','Error: '+e.message,'error'); }
 }
-
+ 
 function renderCourses() {
   var el=document.getElementById('courses-list');
   if(!courses.length){el.innerHTML='<div class="empty">No courses yet.</div>';return;}
@@ -425,7 +431,7 @@ function renderCourses() {
       '</div>';
   }).join('');
 }
-
+ 
 async function delCourse(id) {
   if(!confirm('Delete this course and all its students?')) return;
   try {
@@ -435,7 +441,7 @@ async function delCourse(id) {
     renderCourses(); refreshSelects(); renderStudents();
   } catch(e){ showGlobalAlert('Error: '+e.message,'error'); }
 }
-
+ 
 function refreshSelects() {
   ['eCourse','certC','exp1C','filterC'].forEach(function(id){
     var sel=document.getElementById(id); if(!sel)return;
@@ -451,13 +457,13 @@ function refreshSelects() {
     }).join('');
   }
 }
-
+ 
 // ─── ENROLL ──────────────────────────────────────────────
 function checkPre(){
   var c=courses.find(function(x){return x.id===document.getElementById('eCourse').value;});
   document.getElementById('phoneField').style.display=isPre(c)?'block':'none';
 }
-
+ 
 async function enrollOne() {
   var cid=document.getElementById('eCourse').value;
   var name=document.getElementById('sName').value.trim();
@@ -476,12 +482,12 @@ async function enrollOne() {
     showAlert('alert-enroll',esc(name)+' enrolled and saved to database.','success');
   } catch(e){ showAlert('alert-enroll','Error: '+e.message,'error'); }
 }
-
+ 
 function toggleBatch(){
   var ba=document.getElementById('batch-area');
   ba.style.display=ba.style.display==='none'?'block':'none';
 }
-
+ 
 async function enrollBatch() {
   var cid=document.getElementById('eCourse').value;
   if(!cid){showAlert('alert-enroll','Please select a course.','warn');return;}
@@ -500,7 +506,7 @@ async function enrollBatch() {
   renderStudents(); refreshSelects();
   showAlert('alert-enroll',count+' student(s) enrolled.'+(errs?' '+errs+' skipped.':''),'success');
 }
-
+ 
 // ─── STUDENTS ────────────────────────────────────────────
 function renderStudents() {
   var el=document.getElementById('student-table');
@@ -516,7 +522,7 @@ function renderStudents() {
         '<td><button class="btn btn-danger" onclick="delStudent(''+s.id+'')"><i class="ti ti-trash"></i></button></td></tr>';
     }).join('')+'</tbody></table>';
 }
-
+ 
 async function delStudent(id){
   if(!confirm('Remove this student?')) return;
   try{
@@ -525,7 +531,7 @@ async function delStudent(id){
     renderStudents(); refreshSelects();
   }catch(e){showGlobalAlert('Error: '+e.message,'error');}
 }
-
+ 
 // ─── CERTIFICATES ────────────────────────────────────────
 function renderCertList(){
   var cid=document.getElementById('certC').value;
@@ -542,10 +548,10 @@ function renderCertList(){
       '<span style="font-size:12px;color:#999;">'+esc(s.lic)+'</span></div>';
   }).join('');
 }
-
+ 
 function certSelectAll(v){document.querySelectorAll('#cert-student-list input[type=checkbox]').forEach(function(cb){cb.checked=v;});}
 function getChecked(){return Array.from(document.querySelectorAll('#cert-student-list input[type=checkbox]:checked')).map(function(cb){return students.find(function(s){return s.id===cb.value;});}).filter(Boolean);}
-
+ 
 // SERVER-SIDE SEND (true PDF via nodemailer)
 async function sendCertificatesServer() {
   var cid=document.getElementById('certC').value;
@@ -575,7 +581,7 @@ async function sendCertificatesServer() {
     }
   }
 }
-
+ 
 // CLIENT-SIDE PDF DOWNLOAD
 function generateCertPDF(s, c) {
   var jsPDF=window.jspdf.jsPDF;
@@ -627,7 +633,7 @@ function generateCertPDF(s, c) {
   doc.text("It should NOT be submitted to the Commission unless the Commission specifically requests it.",pw/2,ph-margin-5,{align:'center'});
   return doc.output('datauristring').split(',')[1];
 }
-
+ 
 function downloadPDFFromBase64(b64,filename){
   var binary=atob(b64),bytes=new Uint8Array(binary.length);
   for(var i=0;i<binary.length;i++){bytes[i]=binary.charCodeAt(i);}
@@ -636,7 +642,7 @@ function downloadPDFFromBase64(b64,filename){
   a.href=url; a.download=filename; document.body.appendChild(a); a.click();
   setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
 }
-
+ 
 function downloadAllPDFs(){
   var cid=document.getElementById('certC').value;
   var c=courses.find(function(x){return x.id===cid;});
@@ -657,7 +663,7 @@ function downloadAllPDFs(){
     next();
   },200);
 }
-
+ 
 function showCertsPreview(){
   var cid=document.getElementById('certC').value;
   var c=courses.find(function(x){return x.id===cid;});
@@ -691,7 +697,7 @@ function showCertsPreview(){
     '</div></div>';
   }).join('');
 }
-
+ 
 // ─── NCREC ROSTER ────────────────────────────────────────
 async function downloadNCREC(){
   var cid=document.getElementById('exp1C').value;
@@ -704,7 +710,7 @@ async function downloadNCREC(){
   a.download='NCREC_Roster_'+(c?c.num:cid)+'.txt';
   a.click();
 }
-
+ 
 function downloadCompletion(){
   var cid=document.getElementById('exp2C').value;
   var list=cid?students.filter(function(s){return s.cid===cid;}):students;
@@ -717,7 +723,7 @@ function downloadCompletion(){
   var blob=new Blob([csv],{type:'text/csv'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Completion_Roster.csv'; a.click();
 }
-
+ 
 // ─── SETTINGS ────────────────────────────────────────────
 async function saveSettings(){
   var data={
@@ -737,20 +743,20 @@ async function saveSettings(){
     showAlert('alert-settings','Settings saved to database.','success');
   }catch(e){showAlert('alert-settings','Error: '+e.message,'error');}
 }
-
+ 
 function loadSettingsForm(){
   ['school','prov','instructor','instCode','addr1','addr2','phone','email','web'].forEach(function(k){
     var el=document.getElementById('set'+k.charAt(0).toUpperCase()+k.slice(1));
     if(el) el.value=settingsData[k]||'';
   });
 }
-
+ 
 function copyPortalUrl(){
   navigator.clipboard.writeText(window.location.origin+'/portal').then(function(){
     showGlobalAlert('Portal link copied to clipboard!','success');
   });
 }
-
+ 
 // ─── GMAIL STATUS ────────────────────────────────────────
 async function checkGmailStatus() {
   try {
@@ -766,13 +772,13 @@ async function checkGmailStatus() {
     }
   } catch(e) { console.log('Gmail status check failed:', e.message); }
 }
-
+ 
 async function disconnectGmail() {
   await api('POST', '/api/gmail-disconnect');
   checkGmailStatus();
   showGlobalAlert('Gmail disconnected.', 'info');
 }
-
+ 
 // ─── INIT ────────────────────────────────────────────────
 checkAuth();
 </script>
