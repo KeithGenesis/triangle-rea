@@ -97,7 +97,25 @@ app.use(session({
   saveUninitialized: false,
   cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
+// Serve static files from public folder
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Fallback: also serve from root if public folder missing
+app.use(express.static(__dirname));
+
+// Explicit root route
+app.get('/', (req, res) => {
+  const fs = require('fs');
+  const publicPath = path.join(__dirname, 'public', 'index.html');
+  const rootPath = path.join(__dirname, 'index.html');
+  if (fs.existsSync(publicPath)) {
+    res.sendFile(publicPath);
+  } else if (fs.existsSync(rootPath)) {
+    res.sendFile(rootPath);
+  } else {
+    res.send('<h1>Triangle REA Server is running!</h1><p>index.html not found. Check your public folder.</p>');
+  }
+});
 
 function requireAuth(req, res, next) {
   if (req.session && req.session.user) return next();
@@ -491,6 +509,26 @@ app.get('/api/portal/:licenseNum', async (req, res) => {
 
 app.get('/portal', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'portal.html'));
+});
+
+
+// ─── TEMP RESET ADMIN ────────────────────────────────────
+app.get('/api/reset-admin', async (req, res) => {
+  const secret = req.query.secret;
+  if (secret !== process.env.SESSION_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const newPassword = process.env.ADMIN_PASSWORD || 'triangleREA2024!';
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      "INSERT INTO users(username,password) VALUES('admin',$1) ON CONFLICT(username) DO UPDATE SET password=$1",
+      [hash]
+    );
+    res.json({ success: true, message: 'Admin password reset successfully' });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── START ────────────────────────────────────────────────
