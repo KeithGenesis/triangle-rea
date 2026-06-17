@@ -437,7 +437,7 @@ function renderCourses() {
       (isPre(c)?'<span class="badge badge-orange" style="margin-left:6px;">Prelicense</span>':'')+
       '<div style="font-size:12px;color:#888;margin-top:3px;">'+fmtDisp(c.start)+' → '+fmtDisp(c.end)+(c.hours?' &bull; '+esc(c.hours)+' hrs':'')+(c.loc?' &bull; '+esc(c.loc):'')+' &bull; '+students.filter(function(s){return s.cid===c.id;}).length+' student(s)</div>'+
       '</div>'+
-      '<button class="btn btn-danger" onclick="delCourse(''+c.id+'')"><i class="ti ti-trash"></i> Delete</button>'+
+      '<button class="btn btn-danger" onclick="delCourse("+c.id+")"><i class="ti ti-trash"></i> Delete</button>'+
       '</div>';
   }).join('');
 }
@@ -529,7 +529,7 @@ function renderStudents() {
       var c=courses.find(function(x){return x.id===s.cid;});
       return '<tr><td><strong>'+esc(s.name)+'</strong></td><td>'+esc(s.lic)+'</td><td style="color:#1a6fa0;">'+esc(s.email)+'</td><td>'+esc(s.phone||'—')+'</td><td>'+
         (c?esc(c.num+' — '+c.name):'—')+'</td><td>'+(c?fmtDisp(c.start):'—')+'</td><td>'+(c?fmtDisp(c.end):'—')+'</td>'+
-        '<td><button class="btn btn-danger" onclick="delStudent(''+s.id+'')"><i class="ti ti-trash"></i></button></td></tr>';
+        '<td><button class="btn btn-danger" onclick="delStudent("+s.id+")"><i class="ti ti-trash"></i></button></td></tr>';
     }).join('')+'</tbody></table>';
 }
 
@@ -639,7 +639,7 @@ function generateCertPDF(s, c) {
   doc.setLineWidth(0.4); doc.setDrawColor(0,0,0); doc.line(148,178,pw-margin-8,178);
   doc.setFontSize(8); doc.setTextColor(120,120,120); doc.text('Date',pw-70,183,{align:'center'});
   doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(140,140,140);
-  doc.text("This certificate should be retained as the licensee's personal record of course completion.",pw/2,ph-margin-10,{align:'center'});
+  doc.text("This certificate should be retained as the licensee&#39;s personal record of course completion.",pw/2,ph-margin-10,{align:'center'});
   doc.text("It should NOT be submitted to the Commission unless the Commission specifically requests it.",pw/2,ph-margin-5,{align:'center'});
   return doc.output('datauristring').split(',')[1];
 }
@@ -703,7 +703,7 @@ function showCertsPreview(){
     '<div><img src="data:image/jpeg;base64,'+SIG_B64+'" style="height:44px;max-width:180px;object-fit:contain;display:block;margin-bottom:2px;"><div style="border-bottom:1px solid #000;margin-bottom:3px;"></div><div style="font-size:10px;color:#666;">Education Director Signature</div></div>'+
     '<div style="text-align:center;"><div style="border-bottom:1.5px solid #000;font-size:13px;padding-bottom:2px;min-width:120px;display:inline-block;">'+fmtDisp(c.end)+'</div><div style="font-size:10px;color:#666;margin-top:2px;">Date</div></div>'+
     '</div>'+
-    '<div style="text-align:center;font-size:10px;font-style:italic;color:#666;margin-top:16px;border-top:1px solid #eee;padding-top:10px;">This certificate should be retained as the licensee's personal record of course completion.<br>It should NOT be submitted to the Commission unless the Commission specifically requests it.</div>'+
+    '<div style="text-align:center;font-size:10px;font-style:italic;color:#666;margin-top:16px;border-top:1px solid #eee;padding-top:10px;">This certificate should be retained as the licensee&#39;s personal record of course completion.<br>It should NOT be submitted to the Commission unless the Commission specifically requests it.</div>'+
     '</div></div>';
   }).join('');
 }
